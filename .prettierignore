@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+web-build
+.turbo
+.expo
+apps/mobile/dist
+apps/backend/drizzle
+package-lock.json
+CHANGELOG.md
+INITIALSPEC.md

@@ -1,0 +1,18 @@
+{
+  "name": "@tracker/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared ESLint, Prettier, and TypeScript presets",
+  "exports": {
+    "./eslint": "./eslint.config.js",
+    "./prettier": "./prettier.config.js",
+    "./tsconfig.base.json": "./tsconfig.base.json"
+  },
+  "dependencies": {
+    "@eslint/js": "^9.37.0",
+    "eslint-config-prettier": "^10.1.5",
+    "globals": "^16.4.0",
+    "typescript-eslint": "8.70.0"
+  }
+}

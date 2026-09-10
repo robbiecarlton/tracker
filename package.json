@@ -1,0 +1,33 @@
+{
+  "name": "tracker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Habit tracker — backend, web, and iOS from one monorepo",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "npm@10.9.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "npm run db:generate --workspace @tracker/backend",
+    "db:migrate": "npm run db:migrate --workspace @tracker/backend",
+    "db:rollback": "npm run db:rollback --workspace @tracker/backend",
+    "db:reset": "npm run db:reset --workspace @tracker/backend"
+  },
+  "devDependencies": {
+    "prettier": "3.9.6",
+    "turbo": "2.10.12",
+    "typescript": "~6.0.3"
+  }
+}

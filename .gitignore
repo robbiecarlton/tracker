@@ -1,0 +1,45 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+web-build/
+.turbo/
+*.tsbuildinfo
+
+# Expo
+.expo/
+apps/mobile/dist/
+expo-env.d.ts
+apps/mobile/.expo/
+
+# native
+/apps/mobile/ios
+/apps/mobile/android
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# local database (PGlite)
+.data/
+apps/backend/.data/
+
+# env
+.env
+.env.*
+!.env.example
+
+# logs
+*-debug.*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# editor / OS
+.DS_Store
+*.pem
+.idea/
