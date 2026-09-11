@@ -1,6 +1,7 @@
 # Domain model & view calculations
 
-Status: **spec only.** Implemented from Phase 2 onward in `@tracker/core`.
+Status: **implemented** in `@tracker/core` (Phase 2) — see `packages/core/src/{time,views,targets,highlight}.ts`.
+Persistence (habit/view/log DB tables + CRUD API) lands in Phase 3.
 Source of the requirements: `INITIALSPEC.md`.
 
 ## Entities

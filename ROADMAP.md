@@ -4,22 +4,23 @@ Reference only. Nothing here is worked on unless explicitly requested.
 
 Full context: `docs/DOMAIN.md`, `docs/decisions/`, and the planning notes.
 
-## Phase 1 — skeleton ✅ (current)
+## Phase 1 — skeleton ✅
 
 Monorepo scaffold, auth wired end to end, DB + reversible migrations, CI. No
 habit features.
 
-## Phase 2 — domain core
+## Phase 2 — domain core ✅
 
-Implement in `@tracker/core`, timezone-aware, fully unit-tested:
+Implemented in `@tracker/core`, timezone-aware (Luxon), fully unit-tested (80
+tests): the five view calculations (cumulative, streak, percentage, days,
+since), target evaluation (`at_least` / `at_most` / `exactly`), and the
+green→orange→red highlight mapping. Pure logic only — no DB schema yet; the
+`Habit` / `HabitView` / `HabitLog` persistence schema is Phase 3's job, built
+alongside the routes that need it.
 
-- `Habit` / `HabitView` / `HabitLog` model and persistence schema
-- the five view calculations: cumulative, streak, percentage, days, since
-- target evaluation (`at_least` / `at_most` / `exactly`)
-- green→orange→red highlight mapping
+## Phase 3 — habits & logs API + dashboard (current)
 
-## Phase 3 — habits & logs API + dashboard
-
+- `Habit` / `HabitView` / `HabitLog` DB tables + migration
 - CRUD for habits and their views
 - logging: simple + with notes
 - dashboard rendering each view's value and highlight colour

@@ -9,6 +9,17 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-09-11 — Phase 2 domain core
+
+### Added
+
+- **`@tracker/core` 0.2.0**: the five habit view calculations (cumulative,
+  streak, percentage, days, since), timezone-aware via Luxon and fully
+  unit-tested (80 tests), including DST transitions; target evaluation
+  (`at_least` / `at_most` / `exactly`); green → orange → red dashboard
+  highlight color mapping. Core logic only — no persistence yet; habits/views/
+  logs get DB tables in Phase 3 alongside the CRUD API.
+
 ## 2026-09-10 — Phase 1 skeleton
 
 Initial scaffold. No habit-tracking features yet.

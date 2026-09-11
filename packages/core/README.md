@@ -3,18 +3,21 @@
 Shared domain layer for the habit tracker — imported by both the backend and the
 Expo app so the rules live in one place.
 
-## What's here (Phase 1)
+## What's here
 
-| Module         | Exports                                                            |
-| -------------- | ------------------------------------------------------------------ |
-| `units`        | `UNITS`, `Unit`, `DEFAULT_UNIT`, `isUnit()`                        |
-| `domain`       | `Habit`, `HabitView`, `HabitLog`, `ViewKind`, `TargetType` (types) |
-| `auth-schemas` | `signUpSchema`, `signInSchema`, `emailSchema`, `passwordSchema`    |
+| Module         | Exports                                                                                                                                                     |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `units`        | `UNITS`, `Unit`, `DEFAULT_UNIT`, `isUnit()`                                                                                                                 |
+| `domain`       | `Habit`, `HabitView`, `HabitLog`, `ViewKind`, `TargetType` (types)                                                                                          |
+| `auth-schemas` | `signUpSchema`, `signInSchema`, `emailSchema`, `passwordSchema`                                                                                             |
+| `time`         | `TimeContext`, timezone-aware unit-boundary helpers (`startOfUnit`, `endOfUnit`, `addUnits`, `unitsElapsedBetween`, …)                                      |
+| `views`        | The five view calculations (`computeCumulative`, `computeStreak`, `computePercentage`, `computeDays`, `computeSince`) and the `computeHabitView` dispatcher |
+| `targets`      | `evaluateTarget` — `at_least` / `at_most` / `exactly` target evaluation                                                                                     |
+| `highlight`    | `ratioToColor`, `computeHighlight` — the dashboard's green→orange→red mapping                                                                               |
 
-The five habit **view calculations** (cumulative, streak, percentage, days,
-since), target evaluation, and the green→orange→red highlight mapping are **not**
-implemented yet — they land in Phase 2. The spec for them is in
-[`docs/DOMAIN.md`](../../docs/DOMAIN.md).
+All of it is pure, timezone-aware (via Luxon), and unit-tested — no database or
+persistence lives here yet. Habits/views/logs get real DB tables and a CRUD API
+in Phase 3. The spec these implement is in [`docs/DOMAIN.md`](../../docs/DOMAIN.md).
 
 ## Consumption
 
