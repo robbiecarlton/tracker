@@ -18,15 +18,15 @@ green→orange→red highlight mapping. Pure logic only — no DB schema yet; th
 `Habit` / `HabitView` / `HabitLog` persistence schema is Phase 3's job, built
 alongside the routes that need it.
 
-## Phase 3 — habits & logs API + dashboard (current)
+## Phase 3 — habits & logs API + dashboard ✅
 
-- `Habit` / `HabitView` / `HabitLog` DB tables + migration
-- CRUD for habits and their views
-- logging: simple + with notes
-- dashboard rendering each view's value and highlight colour
-- add / edit habit forms, including the streak warning text
+`Habit`/`HabitView`/`HabitLog` DB tables + migration; authenticated,
+user-scoped CRUD for habits/views (including hard delete) and log creation
+(`@tracker/backend`); the real dashboard, add/edit habit forms (with the
+streak warning), and a log-with-notes screen (`@tracker/mobile`), all
+computing view values and highlight colours client-side via `@tracker/core`.
 
-## Phase 4 — log management
+## Phase 4 — log management (current)
 
 - per-habit log list: add past logs, edit, delete
 - start-date changes: archive-and-clone or keep-with-inline-history

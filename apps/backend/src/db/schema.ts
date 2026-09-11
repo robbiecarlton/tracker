@@ -1,11 +1,22 @@
-import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  doublePrecision,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
 /**
- * Better Auth core tables + a `timezone` column on `user`.
+ * Better Auth core tables (`user`/`session`/`account`/`verification`, plus a
+ * `timezone` column on `user`) and the app's own habit-tracking tables
+ * (`habit`/`habit_view`/`habit_log`, added in Phase 3).
  *
- * This mirrors `drizzle/0001_init.up.sql`, which is the source of truth for the
- * DDL (we run plain-SQL migrations). Keep the two in sync when the schema
- * changes: `npm run db:generate -- <name>` scaffolds the migration files.
+ * This mirrors `drizzle/0001_init.up.sql` and `drizzle/0002_add_habits.up.sql`,
+ * which are the source of truth for the DDL (we run plain-SQL migrations).
+ * Keep the SQL and this file in sync when the schema changes:
+ * `npm run db:generate -- <name>` scaffolds the migration files.
  */
 
 const timestamps = {
@@ -73,4 +84,51 @@ export const verification = pgTable(
   (t) => [index("verification_identifier_idx").on(t.identifier)],
 );
 
-export const schema = { user, session, account, verification };
+export const habit = pgTable(
+  "habit",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    startDate: timestamp("start_date", { withTimezone: true }).notNull(),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [index("habit_user_id_idx").on(t.userId)],
+);
+
+export const habitView = pgTable(
+  "habit_view",
+  {
+    id: text("id").primaryKey(),
+    habitId: text("habit_id")
+      .notNull()
+      .references(() => habit.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    unit: text("unit"),
+    days: integer("days"),
+    cumulationGoal: integer("cumulation_goal"),
+    target: doublePrecision("target"),
+    targetType: text("target_type"),
+    ...timestamps,
+  },
+  (t) => [index("habit_view_habit_id_idx").on(t.habitId)],
+);
+
+export const habitLog = pgTable(
+  "habit_log",
+  {
+    id: text("id").primaryKey(),
+    habitId: text("habit_id")
+      .notNull()
+      .references(() => habit.id, { onDelete: "cascade" }),
+    timestamp: timestamp("timestamp", { withTimezone: true }).notNull(),
+    notes: text("notes"),
+    ...timestamps,
+  },
+  (t) => [index("habit_log_habit_id_idx").on(t.habitId)],
+);
+
+export const schema = { user, session, account, verification, habit, habitView, habitLog };

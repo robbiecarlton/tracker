@@ -17,17 +17,35 @@ repo root to run both).
 
 ```
 src/
-  app/                 expo-router routes
-    index.tsx          redirects by session state
-    (auth)/            sign-in, sign-up  (redirects to app when authed)
-    (app)/             authenticated area — placeholder dashboard
-  components/ui.tsx    shared form primitives
+  app/                     expo-router routes
+    index.tsx              redirects by session state
+    (auth)/                sign-in, sign-up  (redirects to app when authed)
+    (app)/                 authenticated area
+      index.tsx            dashboard — habit cards with computed view tiles
+      habits/new.tsx        create-habit form
+      habits/[id]/edit.tsx  edit-habit form + delete
+      habits/[id]/log.tsx   log-with-notes screen
+  api/
+    client.ts              apiFetch — authenticated fetch via authClient.$fetch
+    habits.ts               listHabits/createHabit/updateHabit/deleteHabit/createLog
+    types.ts                ApiHabit (Habit & { logs })
+  components/
+    ui.tsx                 shared form primitives (Screen, Field, PrimaryButton, ...)
+    HabitCard.tsx           one habit's view tiles + log button
+    HabitForm.tsx           shared create/edit form (name, start date, views editor)
+    ViewTile.tsx            one view's value, tinted by computeHighlight
+    StreakWarning.tsx       the streak demotivation notice
+  hooks/
+    useCurrentUser.ts       session -> { email, timeZone }
+    useHabits.ts            list query + refetch (plain hooks, no data-fetching lib)
   lib/
-    auth.ts            Better Auth client (SecureStore on native, cookies on web)
-    config.ts          EXPO_PUBLIC_API_URL
-    forms.ts           Zod error -> field messages
-    timezone.ts        device IANA timezone
-  offline/outbox.ts    Phase 5 stub — no-op queue interface
+    auth.ts                Better Auth client (SecureStore on native, cookies on web)
+    config.ts               EXPO_PUBLIC_API_URL
+    forms.ts                Zod error -> field messages
+    theme.ts                 app UI palette (separate from @tracker/core's highlight colors)
+    timezone.ts              device IANA timezone
+    view-format.ts           display formatting for computed view results
+  offline/outbox.ts         Phase 5 stub — no-op queue interface
 ```
 
 ## Checks

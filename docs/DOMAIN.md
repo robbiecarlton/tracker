@@ -1,7 +1,12 @@
 # Domain model & view calculations
 
-Status: **implemented** in `@tracker/core` (Phase 2) — see `packages/core/src/{time,views,targets,highlight}.ts`.
-Persistence (habit/view/log DB tables + CRUD API) lands in Phase 3.
+Status: **implemented**. View calculations, target evaluation, and highlight
+mapping live in `@tracker/core` (Phase 2) — see
+`packages/core/src/{time,views,targets,highlight}.ts`. Persistence
+(`habit`/`habit_view`/`habit_log` tables + CRUD API) and the dashboard/forms
+that use it landed in Phase 3 — see `apps/backend/src/routes/habits.ts` and
+`apps/mobile/src/components/{HabitCard,HabitForm}.tsx`. Start-date
+archive/keep-with-history and the archived-habits area (below) are Phase 4.
 Source of the requirements: `INITIALSPEC.md`.
 
 ## Entities

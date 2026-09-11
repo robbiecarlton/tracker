@@ -8,6 +8,7 @@ import {
   type TextInputProps,
   View,
 } from "react-native";
+import { theme } from "@/lib/theme";
 
 export function Screen({ children }: { children: ReactNode }) {
   return <View style={styles.screen}>{children}</View>;
@@ -27,7 +28,7 @@ export function Field({
       <Text style={styles.label}>{label}</Text>
       <TextInput
         style={[styles.input, error ? styles.inputError : null]}
-        placeholderTextColor="#9aa0a6"
+        placeholderTextColor={theme.colors.text.faint}
         {...inputProps}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -58,7 +59,7 @@ export function PrimaryButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color={theme.colors.onBrand} />
       ) : (
         <Text style={styles.buttonText}>{label}</Text>
       )}
@@ -72,30 +73,36 @@ export function FormError({ message }: { message?: string }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: 24, justifyContent: "center", gap: 16, backgroundColor: "#fff" },
-  title: { fontSize: 28, fontWeight: "700", marginBottom: 8, color: "#1a1a1a" },
+  screen: {
+    flex: 1,
+    padding: 24,
+    justifyContent: "center",
+    gap: 16,
+    backgroundColor: theme.colors.background,
+  },
+  title: { fontSize: 28, fontWeight: "700", marginBottom: 8, color: theme.colors.text.primary },
   field: { gap: 6 },
-  label: { fontSize: 13, fontWeight: "600", color: "#3c4043" },
+  label: { fontSize: 13, fontWeight: "600", color: theme.colors.text.secondary },
   input: {
     borderWidth: 1,
-    borderColor: "#d2d5da",
+    borderColor: theme.colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#1a1a1a",
+    color: theme.colors.text.primary,
   },
-  inputError: { borderColor: "#c5221f" },
-  error: { color: "#c5221f", fontSize: 12 },
+  inputError: { borderColor: theme.colors.error },
+  error: { color: theme.colors.error, fontSize: 12 },
   button: {
-    backgroundColor: "#208AEF",
+    backgroundColor: theme.colors.brand,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8,
   },
   buttonPressed: { opacity: 0.85 },
-  buttonDisabled: { backgroundColor: "#9ec6f0" },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  formError: { color: "#c5221f", fontSize: 14, textAlign: "center" },
+  buttonDisabled: { backgroundColor: theme.colors.brandDisabled },
+  buttonText: { color: theme.colors.onBrand, fontSize: 16, fontWeight: "600" },
+  formError: { color: theme.colors.error, fontSize: 14, textAlign: "center" },
 });

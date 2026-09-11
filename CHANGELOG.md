@@ -9,6 +9,26 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-09-11 — Phase 3 habits & logs API + dashboard
+
+### Added
+
+- **`@tracker/core` 0.3.0**: `habit-schemas.ts` (shared Zod validation for the
+  habit/view/log forms, used by both the backend and the mobile app) and
+  `DEFAULT_HABIT_VIEWS`. **Breaking**: `HabitView` now carries `id`/`habitId`/
+  `createdAt`/`updatedAt` — it's a real persisted row as of this phase, not
+  just inline calculation config.
+- **`@tracker/backend` 0.2.0**: `habit`/`habit_view`/`habit_log` tables
+  (migration `0002_add_habits`); authenticated, user-scoped CRUD for habits
+  and their views (including a hard delete) plus log creation. Pure
+  persistence — no view-calculation logic here; the backend returns raw data
+  and the client computes.
+- **`@tracker/mobile` 0.2.0**: the real dashboard, replacing the placeholder —
+  habit cards with per-view tiles computed client-side via `@tracker/core`
+  (`computeHabitView` + `computeHighlight`), a log button, add/edit habit
+  forms (with the streak warning), a log-with-notes screen, a new `src/api/`
+  fetch layer, and a centralized UI theme.
+
 ## 2026-09-11 — Phase 2 domain core
 
 ### Added

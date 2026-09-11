@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-11
+
+### Fixed
+
+- `habitFormSchema`'s `startDate` validation now requires strict `YYYY-MM-DD`
+  and rejects anything else, instead of the previous lenient
+  `!Number.isNaN(Date.parse(s))` check. Native `Date.parse` accepts many
+  non-ISO shapes (e.g. SQL-style `"2026-08-11 00:00:00-07"`) that Luxon's
+  stricter ISO 8601 parser in `time.ts`/`views.ts` rejects — those values were
+  passing form/API validation and only failing much later inside
+  `computeHabitView`, surfacing as an opaque "Invalid datetime" crash instead
+  of a form error.
+
+## [0.3.0] - 2026-09-11
+
+### Added
+
+- `habit-schemas.ts`: shared Zod validation for the habit/view/log create and
+  edit forms (`habitFormSchema`, `habitViewInputSchema`, `createLogSchema`,
+  plus the `viewKindSchema`/`targetTypeSchema`/`unitSchema` enums), reused by
+  the backend's request validation and the mobile app's forms — same pattern
+  as `auth-schemas.ts`.
+- `DEFAULT_HABIT_VIEWS`: the two views a new habit gets by default (Cumulative,
+  Days out of 7), shared by the backend's create-habit route and the mobile
+  create-form's initial state.
+
+### Changed
+
+- **Breaking**: `HabitView` now carries `id`, `habitId`, `createdAt`,
+  `updatedAt` — it's a real, individually-addressable persisted row as of
+  Phase 3 (habit/view/log DB tables), not just inline calculation config.
+  Existing `HabitView` object literals need these fields added.
+
 ## [0.2.0] - 2026-09-11
 
 ### Added

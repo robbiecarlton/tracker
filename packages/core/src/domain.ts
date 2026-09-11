@@ -1,9 +1,10 @@
 import type { Unit } from "./units";
 
 /**
- * Domain model type stubs. These describe the shape of the data the app works
- * with; the behaviour (view calculations, target evaluation, highlight colour)
- * is implemented in Phase 2. See `docs/DOMAIN.md` for the full spec.
+ * Domain model types. Phase 2 added the behaviour (view calculations, target
+ * evaluation, highlight colour — see `views.ts`/`targets.ts`/`highlight.ts`).
+ * Phase 3 makes these real, individually-addressable DB rows. See
+ * `docs/DOMAIN.md` for the full spec.
  */
 
 export type ViewKind = "cumulative" | "streak" | "percentage" | "days" | "since";
@@ -12,6 +13,8 @@ export type ViewKind = "cumulative" | "streak" | "percentage" | "days" | "since"
 export type TargetType = "at_least" | "at_most" | "exactly";
 
 export interface HabitView {
+  id: string;
+  habitId: string;
   kind: ViewKind;
   /** Applies to streak / percentage / days / since. Defaults to `day`. */
   unit?: Unit;
@@ -22,7 +25,15 @@ export interface HabitView {
   /** `days` / `percentage` views: optional target and its direction. */
   target?: number;
   targetType?: TargetType;
+  createdAt: string;
+  updatedAt: string;
 }
+
+/** A new habit defaults to these two views (docs/DOMAIN.md). */
+export const DEFAULT_HABIT_VIEWS: ReadonlyArray<Pick<HabitView, "kind" | "unit">> = [
+  { kind: "cumulative", unit: "day" },
+  { kind: "days", unit: "day" }, // days defaults to N=7 when `days` is omitted
+];
 
 export interface Habit {
   id: string;

@@ -1,10 +1,11 @@
 /**
- * Offline outbox — STUB for Phase 1.
+ * Offline outbox — still a STUB as of Phase 3 (habit/log actions call the
+ * API directly; see `api/habits.ts`).
  *
  * Phase 5 replaces this with a real implementation: a local queue of pending
  * mutations (log / edit / delete) applied optimistically and replayed on
  * reconnect, with the server authoritative and last-write-wins by `updatedAt`.
- * See `docs/DOMAIN.md` and `docs/decisions/0005-offline-outbox.md`.
+ * See `docs/DOMAIN.md` and `docs/decisions/0006-offline-outbox.md`.
  *
  * The interface is defined now so feature code can depend on it without being
  * rewritten later.
@@ -12,7 +13,8 @@
 
 export interface OutboxMutation {
   id: string;
-  kind: "log.create" | "log.update" | "log.delete" | "habit.create" | "habit.update";
+  kind:
+    "log.create" | "log.update" | "log.delete" | "habit.create" | "habit.update" | "habit.delete";
   payload: unknown;
   queuedAt: string;
 }

@@ -21,9 +21,21 @@ describe("ratioToColor", () => {
   });
 });
 
+const baseView = {
+  id: "view-1",
+  habitId: "habit-1",
+  createdAt: "2026-01-01T00:00:00Z",
+  updatedAt: "2026-01-01T00:00:00Z",
+} as const;
+
 describe("computeHighlight", () => {
-  const withTarget: HabitView = { kind: "percentage", target: 80, targetType: "at_least" };
-  const withoutTarget: HabitView = { kind: "percentage" };
+  const withTarget: HabitView = {
+    ...baseView,
+    kind: "percentage",
+    target: 80,
+    targetType: "at_least",
+  };
+  const withoutTarget: HabitView = { ...baseView, kind: "percentage" };
 
   it("is null when the view has no target configured", () => {
     expect(computeHighlight(withoutTarget, 50)).toBeNull();

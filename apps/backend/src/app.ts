@@ -3,6 +3,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { auth } from "./auth";
 import { env } from "./env";
 import { toWebHeaders } from "./http";
+import { habitsRoutes } from "./routes/habits";
 import { healthRoutes } from "./routes/health";
 import { meRoutes } from "./routes/me";
 
@@ -44,6 +45,7 @@ export function buildApp(): FastifyInstance {
 
   app.register(healthRoutes);
   app.register(meRoutes);
+  app.register(habitsRoutes);
 
   return app;
 }

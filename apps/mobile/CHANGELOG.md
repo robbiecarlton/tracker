@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-11
+
+### Added
+
+- Real dashboard (`(app)/index.tsx`): lists habits with computed view tiles
+  (cumulative/streak/percentage/days/since, each computed client-side via
+  `@tracker/core`'s `computeHabitView`) tinted by `computeHighlight`'s
+  green→orange→red mapping. A simple-tap Log button per habit.
+- Add/edit habit form (`HabitForm`) covering name, start date, and a
+  repeatable view editor (kind, unit, days window, cumulation goal,
+  target/target-type), including the streak demotivation warning
+  (`StreakWarning`) and a delete action on the edit screen.
+- Log-with-notes screen.
+- `src/api/`: a thin fetch layer (`apiFetch`, `listHabits`/`createHabit`/
+  `updateHabit`/`deleteHabit`/`createLog`) built on `authClient.$fetch`, which
+  already authenticates transparently on both web (cookie) and native
+  (SecureStore-backed bearer/cookie) — no platform-specific code needed.
+- `useCurrentUser()` (centralizes the session→timezone cast) and `useHabits()`
+  (plain-hooks list query + refetch; no data-fetching library, matching the
+  app's existing minimalism — revisit in Phase 5's offline work).
+- `src/lib/theme.ts`: centralizes the app's UI palette (previously hardcoded
+  per-file); deliberately kept separate from `@tracker/core`'s highlight
+  colors, which stay a distinct, opaque semantic system.
+- `src/lib/view-format.ts`: display-only formatting for computed view results
+  ("X out of N", %, unit pluralization) — kept out of `@tracker/core`, which
+  stays pure math.
+- `offline/outbox.ts`: added the missing `"habit.delete"` mutation kind
+  (outbox itself still a no-op stub until Phase 5).
+
 ## [0.1.0] - 2026-09-10
 
 ### Added

@@ -3,19 +3,22 @@
 A multi-habit tracker with a Fastify backend, and an Expo app that targets both
 **iOS** and **web** from one codebase.
 
-> **Phase 1 — skeleton.** Auth, database, migrations, and CI are wired up. There
-> are no habit-tracking features yet; see [`ROADMAP.md`](./ROADMAP.md).
+> **Phase 3 — habits & logs API + dashboard.** Auth, the domain logic (view
+> calculations, targets, highlight colours), persistence, and the dashboard +
+> forms are all wired up — you can sign up, add habits, log them, and see the
+> dashboard update. Log editing, start-date history, offline support, and
+> targets/polish are still ahead; see [`ROADMAP.md`](./ROADMAP.md).
 
 ## Layout
 
-| Path              | What                                                  |
-| ----------------- | ----------------------------------------------------- |
-| `apps/backend`    | Fastify API, Better Auth, Drizzle (`pg` dialect)      |
-| `apps/mobile`     | Expo Router app — iOS + web                           |
-| `packages/core`   | Shared domain model + (later) view calculations       |
-| `packages/config` | Shared ESLint / Prettier / TS presets                 |
-| `docs/DOMAIN.md`  | Entity model and view-calculation spec (for Phase 2+) |
-| `docs/decisions/` | Architecture decision records                         |
+| Path              | What                                               |
+| ----------------- | -------------------------------------------------- |
+| `apps/backend`    | Fastify API, Better Auth, Drizzle (`pg` dialect)   |
+| `apps/mobile`     | Expo Router app — iOS + web                        |
+| `packages/core`   | Shared domain model, view calculations, validation |
+| `packages/config` | Shared ESLint / Prettier / TS presets              |
+| `docs/DOMAIN.md`  | Entity model and view-calculation spec             |
+| `docs/decisions/` | Architecture decision records                      |
 
 Each app/package is versioned and changelogged independently; this file's
 [`CHANGELOG.md`](./CHANGELOG.md) is the unified log.
@@ -50,11 +53,16 @@ npm run dev --workspace @tracker/backend
 npm run dev --workspace @tracker/mobile
 ```
 
-### Try the auth round-trip
+### Try it out
 
 1. Open the web app, go to **Create account**, sign up.
-2. You land on the placeholder dashboard showing your email and timezone.
-3. `curl http://localhost:4000/health` → `{"status":"ok"}`.
+2. You land on the dashboard — empty at first. Tap **+ New** to add a habit
+   (it defaults to Cumulative + Days-out-of-7 views).
+3. Tap **Log** on the habit card — the view tiles update immediately.
+4. Tap **Edit** to change the habit, add a Streak view (see the warning), or
+   set a target on a Days/Percentage view — the tile's colour interpolates
+   green→orange→red against it.
+5. `curl http://localhost:4000/health` → `{"status":"ok"}`.
 
 ## Checks
 
