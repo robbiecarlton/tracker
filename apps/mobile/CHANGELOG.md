@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-12
+
+### Added
+
+- Per-habit log list (`habits/[id]/logs/`): a reverse-chronological feed
+  merging logs with start-date-change markers, each log older than the
+  habit's current start date visually flagged with an "Archive log" badge;
+  edit/delete per log.
+- `LogForm` — merges what used to be two separate flows ("log with notes"
+  and "add a past log") into one shared create/edit form; the old
+  `habits/[id]/log.tsx` is retired.
+- Start-date-change handling: editing a habit's start date past logs that
+  predate it now prompts Archive-vs-Keep (`docs/DOMAIN.md`'s "Start-date
+  changes") — Keep is an ordinary save (the backend auto-records history),
+  Archive calls the new `archiveAndCloneHabit`.
+- Archived-habits area (`habits/archived.tsx`) with an Unarchive action, and
+  an "Archived" link on the dashboard, which now excludes archived habits
+  from the main list.
+- `lib/date-format.ts`: raw ISO ⇄ human display ⇄ user-typed local text for
+  a log's timestamp (a different concern from `view-format.ts`, which
+  formats computed view results, not raw dates). Adds `luxon` as a direct
+  dependency (previously only reachable transitively via `@tracker/core`,
+  which deliberately never exposes it across its own API).
+- `api/habits.ts`: `updateLog`, `deleteLog`, `archiveHabit`, `unarchiveHabit`,
+  `archiveAndCloneHabit`.
+- `theme.ts`: a `badge` token for the "Archive log" marker and archived
+  status.
+- `offline/outbox.ts`: added `"habit.archive"`/`"habit.unarchive"` mutation
+  kinds (outbox itself still a no-op stub until Phase 5).
+- `HabitCard`: a one-tap "+ note" link back to `logs/new` alongside the plain
+  Log button and the Logs list link (the Phase 3 "log with notes" shortcut,
+  dropped when the logs list replaced it — restored per-habit, not just
+  reachable from the list).
+
+### Fixed
+
+- **`Alert.alert` was a complete no-op on web** (`react-native-web` ships it
+  as `static alert() {}`), silently swallowing every confirmation dialog:
+  delete habit, delete log (both the list and the edit-log screen), and the
+  entire Archive-vs-Keep start-date prompt. Replaced every `Alert.alert` call
+  with a new `lib/confirm.tsx` (`confirmAlert` + `<ConfirmHost />`, mounted
+  once at the app root) built on RN's `Modal`, which `react-native-web` does
+  implement for real.
+
 ## [0.2.0] - 2026-09-11
 
 ### Added

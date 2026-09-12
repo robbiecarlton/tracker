@@ -56,3 +56,20 @@ export interface HabitLog {
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * Immutable audit record of one start-date edit (Phase 4's "keep" path —
+ * see docs/DOMAIN.md's "Start-date changes"). Never itself updated after
+ * creation; `updatedAt` is retained only for shape-consistency with
+ * `HabitView`/`HabitLog` and will always equal `createdAt`.
+ */
+export interface HabitStartDateChange {
+  id: string;
+  habitId: string;
+  /** The start date this habit had immediately before this change. */
+  previousStartDate: string;
+  /** The start date it changed to. */
+  newStartDate: string;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -4,6 +4,7 @@ import {
   createLogSchema,
   habitFormSchema,
   habitViewInputSchema,
+  updateLogSchema,
 } from "./habit-schemas";
 
 describe("habitViewInputSchema", () => {
@@ -153,5 +154,33 @@ describe("createLogSchema", () => {
 
   it("accepts null notes", () => {
     expect(createLogSchema.safeParse({ notes: null }).success).toBe(true);
+  });
+
+  it("rejects a non-ISO timestamp, even one native Date.parse accepts", () => {
+    // Same regression class as habitFormSchema.startDate: this SQL-style
+    // string passes lenient Date.parse but Luxon's stricter ISO 8601 parser
+    // (used downstream in parseInZone) rejects it.
+    const result = createLogSchema.safeParse({ timestamp: "2026-08-11 00:00:00-07" });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("updateLogSchema", () => {
+  it("requires a valid timestamp — no 'now' fallback", () => {
+    expect(updateLogSchema.safeParse({ notes: null }).success).toBe(false);
+    expect(
+      updateLogSchema.safeParse({ timestamp: "2026-01-01T12:00:00Z", notes: null }).success,
+    ).toBe(true);
+  });
+
+  it("rejects an invalid timestamp", () => {
+    expect(updateLogSchema.safeParse({ timestamp: "not-a-date", notes: null }).success).toBe(false);
+  });
+
+  it("requires notes to be explicitly present (null or a string), not omitted", () => {
+    expect(updateLogSchema.safeParse({ timestamp: "2026-01-01T12:00:00Z" }).success).toBe(false);
+    expect(
+      updateLogSchema.safeParse({ timestamp: "2026-01-01T12:00:00Z", notes: "felt great" }).success,
+    ).toBe(true);
   });
 });

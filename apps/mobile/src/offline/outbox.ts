@@ -1,5 +1,5 @@
 /**
- * Offline outbox — still a STUB as of Phase 3 (habit/log actions call the
+ * Offline outbox — still a STUB as of Phase 4 (habit/log actions call the
  * API directly; see `api/habits.ts`).
  *
  * Phase 5 replaces this with a real implementation: a local queue of pending
@@ -14,7 +14,17 @@
 export interface OutboxMutation {
   id: string;
   kind:
-    "log.create" | "log.update" | "log.delete" | "habit.create" | "habit.update" | "habit.delete";
+    | "log.create"
+    | "log.update"
+    | "log.delete"
+    | "habit.create"
+    | "habit.update"
+    | "habit.delete"
+    | "habit.archive"
+    | "habit.unarchive";
+  // No "habit.archiveAndClone" kind yet — it's a composite server-side
+  // operation, and Phase 5's actual mutation-queue/replay design doesn't
+  // exist yet to guess its shape correctly. Left for that phase.
   payload: unknown;
   queuedAt: string;
 }

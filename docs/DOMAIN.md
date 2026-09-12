@@ -5,9 +5,12 @@ mapping live in `@tracker/core` (Phase 2) — see
 `packages/core/src/{time,views,targets,highlight}.ts`. Persistence
 (`habit`/`habit_view`/`habit_log` tables + CRUD API) and the dashboard/forms
 that use it landed in Phase 3 — see `apps/backend/src/routes/habits.ts` and
-`apps/mobile/src/components/{HabitCard,HabitForm}.tsx`. Start-date
-archive/keep-with-history and the archived-habits area (below) are Phase 4.
-Source of the requirements: `INITIALSPEC.md`.
+`apps/mobile/src/components/{HabitCard,HabitForm}.tsx`. Log
+management, start-date archive/keep-with-history, and the archived-habits
+area (below) landed in Phase 4 — see `apps/backend/src/db/schema.ts`'s
+`habit_start_date_change` table and `apps/mobile/src/app/(app)/habits/`'s
+`logs/` and `archived.tsx` screens. Source of the requirements:
+`INITIALSPEC.md`.
 
 ## Entities
 

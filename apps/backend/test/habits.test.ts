@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app";
 import { rawClient } from "../src/db";
 import { runMigrations } from "../src/db/migrator";
+import { signUpAndGetCookie } from "./helpers";
 
 let app: FastifyInstance;
 
@@ -18,32 +19,21 @@ afterAll(async () => {
   await rawClient.close().catch(() => {});
 });
 
-function cookieFrom(res: { headers: Record<string, unknown> }): string {
-  const raw = res.headers["set-cookie"];
-  const list = Array.isArray(raw) ? raw : [String(raw)];
-  return list.map((c) => c.split(";")[0]).join("; ");
-}
-
-async function signUpAndGetCookie(emailPrefix: string): Promise<string> {
-  const email = `${emailPrefix}-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`;
-  const signUp = await app.inject({
-    method: "POST",
-    url: "/api/auth/sign-up/email",
-    headers: { "content-type": "application/json" },
-    payload: JSON.stringify({ name: "Test User", email, password: "password123" }),
-  });
-  expect(signUp.statusCode).toBe(200);
-  return cookieFrom(signUp);
-}
-
-interface HabitJson {
+export interface HabitJson {
   id: string;
   name: string;
   startDate: string;
+  archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
   views: { id: string; kind: string; unit?: string; target?: number; targetType?: string }[];
   logs: { id: string; notes: string | null; timestamp: string }[];
+  startDateHistory: {
+    id: string;
+    previousStartDate: string;
+    newStartDate: string;
+    createdAt: string;
+  }[];
 }
 
 describe("habits API", () => {
@@ -96,7 +86,7 @@ describe("habits API", () => {
   });
 
   it("create -> list -> update -> delete round trip", async () => {
-    const cookie = await signUpAndGetCookie("roundtrip");
+    const cookie = await signUpAndGetCookie(app, "roundtrip");
 
     const create = await app.inject({
       method: "POST",
@@ -150,7 +140,7 @@ describe("habits API", () => {
   });
 
   it("applies DEFAULT_HABIT_VIEWS when views is omitted or empty", async () => {
-    const cookie = await signUpAndGetCookie("defaults");
+    const cookie = await signUpAndGetCookie(app, "defaults");
 
     const omitted = await app.inject({
       method: "POST",
@@ -174,7 +164,7 @@ describe("habits API", () => {
   });
 
   it("persists explicit views verbatim, including targets", async () => {
-    const cookie = await signUpAndGetCookie("explicit-views");
+    const cookie = await signUpAndGetCookie(app, "explicit-views");
 
     const create = await app.inject({
       method: "POST",
@@ -198,7 +188,7 @@ describe("habits API", () => {
   });
 
   it("rejects invalid payloads with 400", async () => {
-    const cookie = await signUpAndGetCookie("validation");
+    const cookie = await signUpAndGetCookie(app, "validation");
 
     const cases = [
       { name: "", startDate: "2026-01-01", views: [{ kind: "cumulative" }] }, // missing name
@@ -232,8 +222,8 @@ describe("habits API", () => {
   });
 
   it("scopes habits to their owner: a second user can't see or act on the first user's habit", async () => {
-    const cookieA = await signUpAndGetCookie("owner-a");
-    const cookieB = await signUpAndGetCookie("owner-b");
+    const cookieA = await signUpAndGetCookie(app, "owner-a");
+    const cookieB = await signUpAndGetCookie(app, "owner-b");
 
     const create = await app.inject({
       method: "POST",
@@ -284,7 +274,7 @@ describe("habits API", () => {
   });
 
   it("creates a log (simple and with notes), reflected in a subsequent list call", async () => {
-    const cookie = await signUpAndGetCookie("logging");
+    const cookie = await signUpAndGetCookie(app, "logging");
 
     const create = await app.inject({
       method: "POST",
@@ -326,7 +316,7 @@ describe("habits API", () => {
     // previously returned space-separated, non-colon-offset strings (e.g.
     // "2026-08-11 00:00:00-07") for timestamptz columns under Drizzle's
     // `mode: "string"`, which parseInZone (Luxon, strict ISO 8601) rejects.
-    const cookie = await signUpAndGetCookie("iso-dates");
+    const cookie = await signUpAndGetCookie(app, "iso-dates");
 
     const create = await app.inject({
       method: "POST",
@@ -347,6 +337,17 @@ describe("habits API", () => {
       payload: "{}",
     });
 
+    await app.inject({
+      method: "PATCH",
+      url: `/api/habits/${habitId}`,
+      headers: { cookie, "content-type": "application/json" },
+      payload: JSON.stringify({
+        name: "Meditate",
+        startDate: "2026-08-12",
+        views: [{ kind: "cumulative" }],
+      }),
+    });
+
     const list = await app.inject({ method: "GET", url: "/api/habits", headers: { cookie } });
     const habit = (list.json() as { habits: HabitJson[] }).habits.find((h) => h.id === habitId);
     if (!habit) throw new Error("created habit not found in list response");
@@ -357,5 +358,10 @@ describe("habits API", () => {
     const log = habit.logs[0];
     if (!log) throw new Error("created log not found on habit");
     expect(() => parseInZone(log.timestamp, "America/Denver")).not.toThrow();
+    const historyEntry = habit.startDateHistory[0];
+    if (!historyEntry) throw new Error("expected a start-date-history row after the PATCH above");
+    expect(() => parseInZone(historyEntry.previousStartDate, "America/Denver")).not.toThrow();
+    expect(() => parseInZone(historyEntry.newStartDate, "America/Denver")).not.toThrow();
+    expect(() => parseInZone(historyEntry.createdAt, "America/Denver")).not.toThrow();
   });
 });

@@ -11,12 +11,14 @@ import {
 /**
  * Better Auth core tables (`user`/`session`/`account`/`verification`, plus a
  * `timezone` column on `user`) and the app's own habit-tracking tables
- * (`habit`/`habit_view`/`habit_log`, added in Phase 3).
+ * (`habit`/`habit_view`/`habit_log`, added in Phase 3;
+ * `habit_start_date_change`, added in Phase 4).
  *
- * This mirrors `drizzle/0001_init.up.sql` and `drizzle/0002_add_habits.up.sql`,
- * which are the source of truth for the DDL (we run plain-SQL migrations).
- * Keep the SQL and this file in sync when the schema changes:
- * `npm run db:generate -- <name>` scaffolds the migration files.
+ * This mirrors `drizzle/0001_init.up.sql`, `drizzle/0002_add_habits.up.sql`,
+ * and `drizzle/0003_add_start_date_history.up.sql`, which are the source of
+ * truth for the DDL (we run plain-SQL migrations). Keep the SQL and this file
+ * in sync when the schema changes: `npm run db:generate -- <name>` scaffolds
+ * the migration files.
  */
 
 const timestamps = {
@@ -131,4 +133,28 @@ export const habitLog = pgTable(
   (t) => [index("habit_log_habit_id_idx").on(t.habitId)],
 );
 
-export const schema = { user, session, account, verification, habit, habitView, habitLog };
+/** One row per start-date edit — see `docs/DOMAIN.md`'s "Start-date changes". */
+export const habitStartDateChange = pgTable(
+  "habit_start_date_change",
+  {
+    id: text("id").primaryKey(),
+    habitId: text("habit_id")
+      .notNull()
+      .references(() => habit.id, { onDelete: "cascade" }),
+    previousStartDate: timestamp("previous_start_date", { withTimezone: true }).notNull(),
+    newStartDate: timestamp("new_start_date", { withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (t) => [index("habit_start_date_change_habit_id_idx").on(t.habitId)],
+);
+
+export const schema = {
+  user,
+  session,
+  account,
+  verification,
+  habit,
+  habitView,
+  habitLog,
+  habitStartDateChange,
+};

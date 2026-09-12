@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-12
+
+### Added
+
+- `habit_start_date_change` table (migration `0003_add_start_date_history`):
+  an immutable audit row per start-date edit, so the log view can show every
+  past start date inline (`docs/DOMAIN.md`'s "keep" path). `PATCH
+  /api/habits/:id` now records one automatically whenever the submitted
+  `startDate` differs from the stored value — no separate endpoint needed for
+  "keep".
+- Per-log edit/delete: `PATCH` / `DELETE /api/habits/:habitId/logs/:logId`,
+  scoped to both the owning habit and the specific log (404 covers wrong
+  user, wrong log, or a log belonging to the user's *other* habit).
+- Habit archiving: `POST /api/habits/:id/archive` and `.../unarchive` (the
+  latter added proactively — an archive area with no way back is a dead
+  end), and `POST /api/habits/:id/archive-and-clone` (one transaction:
+  archives the existing habit exactly as it stood — logs included, never
+  moved or copied — and creates a fresh habit from the submitted
+  `{name, startDate, views}`).
+- `GET /api/habits` responses now include `startDateHistory` per habit.
+  Archived habits are **not** filtered out server-side — the client filters
+  client-side at this app's scale.
+- Vitest coverage in two new files (`habit-logs.test.ts`,
+  `habit-archive.test.ts`), plus `habits.test.ts`'s shared auth helpers
+  extracted to `test/helpers.ts`.
+
+## [0.2.1] - 2026-09-11
+
+### Fixed
+
+- CORS: `@fastify/cors` defaults to allowing only `GET, HEAD, POST`
+  cross-origin. `PATCH`/`DELETE` (habit edit/delete) aren't "simple" methods,
+  so a cross-origin request triggers a preflight the browser then silently
+  blocks when the server doesn't advertise the method — breaking habit
+  edit/delete from web (native RN fetch doesn't enforce CORS, so this was
+  web-only). Fixed by explicitly listing `methods` in the CORS config.
+  (This fix shipped in commit `be64c1f` without a version bump at the time —
+  recorded here for the record.)
+
 ## [0.2.0] - 2026-09-11
 
 ### Added

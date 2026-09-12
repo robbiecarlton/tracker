@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-12
+
+### Added
+
+- `HabitStartDateChange`: an immutable audit record of a habit's start-date
+  edits, for Phase 4's "keep" path (`docs/DOMAIN.md`'s "Start-date changes") —
+  the log view can now show every past start date inline with the logs.
+- `updateLogSchema`: validation for editing an existing log (full-replace,
+  unlike `createLogSchema`'s create-with-optional-fields shape — no "now"
+  fallback for `timestamp`, `notes` required-but-nullable).
+
+### Fixed
+
+- `createLogSchema.timestamp` now validates with the same strict
+  Luxon-parses-it check as `habitFormSchema.startDate` (previously just
+  `.min(1)`), closing the same crash class before Phase 4 introduces the
+  first caller that actually populates this field.
+
 ## [0.4.0] - 2026-09-12
 
 ### Changed

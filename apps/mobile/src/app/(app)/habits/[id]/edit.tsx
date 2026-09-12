@@ -1,10 +1,13 @@
+import type { HabitFormInput } from "@tracker/core";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text } from "react-native";
-import { deleteHabit, updateHabit } from "@/api/habits";
+import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
+import { archiveAndCloneHabit, deleteHabit, updateHabit } from "@/api/habits";
+import type { ApiHabit } from "@/api/types";
 import { HabitForm, rowFromView } from "@/components/HabitForm";
 import { Screen } from "@/components/ui";
 import { useHabits } from "@/hooks/useHabits";
+import { confirmAlert } from "@/lib/confirm";
 import { theme } from "@/lib/theme";
 
 export default function EditHabit() {
@@ -38,7 +41,7 @@ export default function EditHabit() {
 
   function onDelete() {
     if (!habit) return;
-    Alert.alert("Delete habit?", `This permanently removes "${habit.name}" and its logs.`, [
+    confirmAlert("Delete habit?", `This permanently removes "${habit.name}" and its logs.`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
@@ -51,6 +54,53 @@ export default function EditHabit() {
     ]);
   }
 
+  /**
+   * If the start date moved and logs exist before the new date, prompt
+   * Archive-vs-Keep (docs/DOMAIN.md's "Start-date changes"). "Keep" is just
+   * an ordinary `updateHabit` — the backend auto-records history whenever
+   * `startDate` differs from what's stored, so there's nothing special to do
+   * here beyond calling it. "Archive" swaps in the new archive-and-clone
+   * endpoint instead.
+   */
+  function promptArchiveOrKeep(
+    current: ApiHabit,
+    input: HabitFormInput,
+  ): Promise<{ error?: string } | void> {
+    return new Promise((resolve) => {
+      confirmAlert(
+        "Start date changed",
+        "You have logs before the new start date. Archive this habit and start fresh with the new date, or keep it and mark those logs as history?",
+        [
+          { text: "Cancel", style: "cancel", onPress: () => resolve() },
+          {
+            text: "Keep",
+            onPress: async () => {
+              try {
+                await updateHabit(current.id, input);
+                router.back();
+                resolve();
+              } catch {
+                resolve({ error: "Couldn't save changes. Please try again." });
+              }
+            },
+          },
+          {
+            text: "Archive",
+            onPress: async () => {
+              try {
+                await archiveAndCloneHabit(current.id, input);
+                router.back();
+                resolve();
+              } catch {
+                resolve({ error: "Couldn't save changes. Please try again." });
+              }
+            },
+          },
+        ],
+      );
+    });
+  }
+
   return (
     <HabitForm
       initialName={habit.name}
@@ -58,6 +108,16 @@ export default function EditHabit() {
       initialViews={habit.views.map(rowFromView)}
       submitLabel="Save"
       onSubmit={async (input) => {
+        const startDateChanged = input.startDate !== habit.startDate.slice(0, 10);
+        // Same conversion the backend applies, so client and server always
+        // agree on which logs "predate" the new date.
+        const newStartInstant = new Date(input.startDate).toISOString();
+        const hasEarlierLogs = habit.logs.some((log) => log.timestamp < newStartInstant);
+
+        if (startDateChanged && hasEarlierLogs) {
+          return promptArchiveOrKeep(habit, input);
+        }
+
         try {
           await updateHabit(habit.id, input);
           router.back();

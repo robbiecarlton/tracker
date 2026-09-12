@@ -10,7 +10,8 @@ import { theme } from "@/lib/theme";
 export default function Dashboard() {
   const router = useRouter();
   const { user } = useCurrentUser();
-  const { habits, loading, error, refetch } = useHabits();
+  const { habits: allHabits, loading, error, refetch } = useHabits();
+  const habits = allHabits.filter((h) => !h.archivedAt);
 
   // The dashboard, create/edit/log screens each own an independent fetch —
   // there's no shared cache yet (see useHabits' doc comment) — so refetch
@@ -31,9 +32,14 @@ export default function Dashboard() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.heading}>Habits</Text>
-        <Pressable accessibilityRole="button" onPress={() => router.push("/habits/new")}>
-          <Text style={styles.addLink}>+ New</Text>
-        </Pressable>
+        <View style={styles.headerLinks}>
+          <Pressable accessibilityRole="button" onPress={() => router.push("/habits/archived")}>
+            <Text style={styles.archivedLink}>Archived</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => router.push("/habits/new")}>
+            <Text style={styles.addLink}>+ New</Text>
+          </Pressable>
+        </View>
       </View>
 
       {loading && habits.length === 0 ? (
@@ -70,6 +76,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   heading: { fontSize: 28, fontWeight: "700", color: theme.colors.text.primary },
+  headerLinks: { flexDirection: "row", alignItems: "center", gap: 16 },
+  archivedLink: { color: theme.colors.text.muted, fontSize: 14 },
   addLink: { color: theme.colors.brand, fontWeight: "600", fontSize: 16 },
   spinner: { marginTop: 40 },
   error: { color: theme.colors.error, textAlign: "center", marginTop: 40, paddingHorizontal: 20 },

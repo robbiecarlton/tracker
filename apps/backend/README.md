@@ -29,21 +29,27 @@ npm run dev                     # tsx watch on http://localhost:4000
 
 ## Endpoints
 
-| Method | Path                   | Auth | Notes                                                              |
-| ------ | ---------------------- | ---- | ------------------------------------------------------------------ |
-| GET    | `/health`              | no   | `{ "status": "ok" }`                                               |
-| \*     | `/api/auth/*`          | —    | Better Auth (sign-up, sign-in, etc.)                               |
-| GET    | `/api/me`              | yes  | current user; `401` when unauthorized                              |
-| GET    | `/api/habits`          | yes  | the caller's habits, each with nested `views`/`logs`               |
-| POST   | `/api/habits`          | yes  | create; empty/omitted `views` gets the default view set            |
-| PATCH  | `/api/habits/:id`      | yes  | update; `views` is replaced wholesale; `404` if not the caller's   |
-| DELETE | `/api/habits/:id`      | yes  | hard delete, cascades to its views/logs; `404` if not the caller's |
-| POST   | `/api/habits/:id/logs` | yes  | create a log (simple or with `notes`); `404` if not the caller's   |
+| Method | Path                                | Auth | Notes                                                                                                   |
+| ------ | ----------------------------------- | ---- | ------------------------------------------------------------------------------------------------------- |
+| GET    | `/health`                           | no   | `{ "status": "ok" }`                                                                                    |
+| \*     | `/api/auth/*`                       | —    | Better Auth (sign-up, sign-in, etc.)                                                                    |
+| GET    | `/api/me`                           | yes  | current user; `401` when unauthorized                                                                   |
+| GET    | `/api/habits`                       | yes  | the caller's habits, each with nested `views`/`logs`/`startDateHistory`                                 |
+| POST   | `/api/habits`                       | yes  | create; empty/omitted `views` gets the default view set                                                 |
+| PATCH  | `/api/habits/:id`                   | yes  | update; `views` replaced wholesale; records start-date history if it changed; `404` if not the caller's |
+| DELETE | `/api/habits/:id`                   | yes  | hard delete, cascades to its views/logs; `404` if not the caller's                                      |
+| POST   | `/api/habits/:id/logs`              | yes  | create a log (simple or with `notes`); `404` if not the caller's                                        |
+| PATCH  | `/api/habits/:habitId/logs/:logId`  | yes  | edit a log; `404` if not the caller's, or `logId` doesn't belong to `habitId`                           |
+| DELETE | `/api/habits/:habitId/logs/:logId`  | yes  | delete a log; same 404 scoping as edit                                                                  |
+| POST   | `/api/habits/:id/archive`           | yes  | sets `archivedAt`; `404` if not the caller's                                                            |
+| POST   | `/api/habits/:id/unarchive`         | yes  | clears `archivedAt`                                                                                     |
+| POST   | `/api/habits/:id/archive-and-clone` | yes  | archives the habit as-is (logs stay put) and creates a fresh one from the submitted config              |
 
 Request bodies are validated with `@tracker/core`'s `habit-schemas.ts` — the
 same schemas the mobile app's forms use. View calculations (cumulative,
 streak, percentage, days, since) are **not** computed here; the client
-computes them from the raw data via `@tracker/core`.
+computes them from the raw data via `@tracker/core`. Archived habits are
+returned unfiltered by `GET /api/habits` — the client decides what to show.
 
 ## Database commands
 

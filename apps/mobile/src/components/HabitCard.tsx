@@ -6,9 +6,10 @@ import {
 } from "@tracker/core";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { createLog } from "@/api/habits";
 import type { ApiHabit } from "@/api/types";
+import { confirmAlert } from "@/lib/confirm";
 import { theme } from "@/lib/theme";
 import { formatViewValue, highlightValueForView, viewLabel } from "@/lib/view-format";
 import { ViewTile } from "./ViewTile";
@@ -54,7 +55,7 @@ export function HabitCard({
       await createLog(habit.id, {});
       await onChanged();
     } catch {
-      Alert.alert("Couldn't log this habit", "Please try again.");
+      confirmAlert("Couldn't log this habit", "Please try again.");
     } finally {
       setLogging(false);
     }
@@ -102,11 +103,19 @@ export function HabitCard({
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push({ pathname: "/habits/[id]/log", params: { id: habit.id } })}
+          onPress={() => router.push({ pathname: "/habits/[id]/logs/new", params: { id: habit.id } })}
           hitSlop={8}
           style={styles.notesLink}
         >
-          <Text style={styles.notesLinkText}>+ notes</Text>
+          <Text style={styles.notesLinkText}>+ note</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push({ pathname: "/habits/[id]/logs", params: { id: habit.id } })}
+          hitSlop={8}
+          style={styles.notesLink}
+        >
+          <Text style={styles.notesLinkText}>Logs</Text>
         </Pressable>
       </View>
     </View>

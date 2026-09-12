@@ -26,5 +26,10 @@ export const theme = {
       border: "#f5a623",
       text: "#7a4a00",
     },
+    /** Neutral marker — an "Archive log" badge, an archived-habit's status. */
+    badge: {
+      background: "#eceef1",
+      text: "#5f6368",
+    },
   },
 } as const;

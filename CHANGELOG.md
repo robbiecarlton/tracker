@@ -9,6 +9,43 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-09-12 — Phase 4 log management
+
+### Added
+
+- **`@tracker/core` 0.5.0**: `HabitStartDateChange` (an immutable audit
+  record of a habit's start-date edits) and `updateLogSchema`; tightened
+  `createLogSchema.timestamp` validation to the same strict-parse standard as
+  `habitFormSchema.startDate`.
+- **`@tracker/backend` 0.3.0**: a `habit_start_date_change` table (migration
+  `0003`) — `PATCH /api/habits/:id` now auto-records history whenever
+  `startDate` changes, which is the entire "keep" path from
+  `docs/DOMAIN.md`'s "Start-date changes". Per-log edit/delete endpoints;
+  habit archive/unarchive/archive-and-clone (the last archives a habit
+  exactly as it stood — logs included, never moved — and creates a fresh one
+  from the submitted config).
+- **`@tracker/mobile` 0.3.0**: a per-habit log list merging logs with
+  start-date-history markers, with "Archive log" badges for logs predating
+  the current start date; a merged add/edit log form (retiring the separate
+  "log with notes" screen); an Archive-vs-Keep prompt when editing a start
+  date past existing logs; an archived-habits area with unarchive, and a
+  matching dashboard filter/link. A one-tap "+ note" link on each habit card,
+  restoring the Phase 3 quick-log-with-notes shortcut alongside the new logs
+  list.
+
+### Fixed
+
+- **`@tracker/backend` 0.2.1** (retroactively recorded — this shipped without
+  a version bump at the time, in commit `be64c1f`): `@fastify/cors` defaults
+  to `GET, HEAD, POST` only, silently blocking `PATCH`/`DELETE` (habit
+  edit/delete) from the browser via a failed CORS preflight. Fixed by
+  explicitly listing `methods` in the CORS config.
+- **`@tracker/mobile` 0.3.0**: `Alert.alert` is a complete no-op on web
+  (`react-native-web`), silently breaking every confirmation dialog —
+  deleting a habit or a log, and the entire Archive-vs-Keep start-date
+  prompt. Replaced with a custom `Modal`-backed confirm dialog
+  (`lib/confirm.tsx`), which `react-native-web` implements for real.
+
 ## 2026-09-11 — Phase 3 habits & logs API + dashboard
 
 ### Added

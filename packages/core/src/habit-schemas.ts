@@ -85,9 +85,32 @@ export const createHabitSchema = habitFormSchema.extend({
 });
 
 export const createLogSchema = z.object({
-  /** ISO datetime. Omitted = server uses now(). */
-  timestamp: z.string().trim().min(1).optional(),
+  /** ISO datetime. Omitted = server uses now(). Same strict-parse rationale
+   *  as `habitFormSchema.startDate` above — native `Date.parse` is too
+   *  lenient and would let an invalid value crash later inside
+   *  `computeHabitView`/`parseInZone` instead of failing validation here. */
+  timestamp: z
+    .string()
+    .trim()
+    .min(1)
+    .refine((s) => DateTime.fromISO(s).isValid, { message: "Enter a valid date and time" })
+    .optional(),
   notes: z.string().trim().max(2000).nullable().optional(),
+});
+
+/**
+ * For editing an existing log — unlike `createLogSchema`, `timestamp` has no
+ * "now" fallback (the field is always being deliberately set) and `notes` is
+ * required-but-nullable, matching the codebase's full-replace-on-edit
+ * convention (like `habitFormSchema`, not a partial PATCH).
+ */
+export const updateLogSchema = z.object({
+  timestamp: z
+    .string()
+    .trim()
+    .min(1, "Enter a date and time")
+    .refine((s) => DateTime.fromISO(s).isValid, { message: "Enter a valid date and time" }),
+  notes: z.string().trim().max(2000).nullable(),
 });
 
 export type ViewKindInput = z.infer<typeof viewKindSchema>;
@@ -95,3 +118,4 @@ export type HabitViewInput = z.infer<typeof habitViewInputSchema>;
 export type HabitFormInput = z.infer<typeof habitFormSchema>;
 export type CreateHabitInput = z.infer<typeof createHabitSchema>;
 export type CreateLogInput = z.infer<typeof createLogSchema>;
+export type UpdateLogInput = z.infer<typeof updateLogSchema>;

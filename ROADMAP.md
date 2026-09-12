@@ -26,13 +26,17 @@ user-scoped CRUD for habits/views (including hard delete) and log creation
 streak warning), and a log-with-notes screen (`@tracker/mobile`), all
 computing view values and highlight colours client-side via `@tracker/core`.
 
-## Phase 4 — log management (current)
+## Phase 4 — log management ✅
 
-- per-habit log list: add past logs, edit, delete
-- start-date changes: archive-and-clone or keep-with-inline-history
-- archived habits area
+A per-habit log list (`@tracker/mobile`) merging logs with start-date-history
+markers, add/edit/delete per log, and "Archive log" badges for logs predating
+the current start date. Start-date changes: editing past existing logs
+prompts Archive-vs-Keep — Keep auto-records history via an extended
+`PATCH /api/habits/:id` (`@tracker/backend`, a new `habit_start_date_change`
+table); Archive uses a new archive-and-clone endpoint. An archived-habits
+area with unarchive, filtered off the main dashboard.
 
-## Phase 5 — offline outbox
+## Phase 5 — offline outbox (current)
 
 - local cache + mutation queue + reconnect replay + last-write-wins
 - wired into logging and edits on web and native

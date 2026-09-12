@@ -17,22 +17,28 @@ repo root to run both).
 
 ```
 src/
-  app/                     expo-router routes
-    index.tsx              redirects by session state
-    (auth)/                sign-in, sign-up  (redirects to app when authed)
-    (app)/                 authenticated area
-      index.tsx            dashboard — habit cards with computed view tiles
-      habits/new.tsx        create-habit form
-      habits/[id]/edit.tsx  edit-habit form + delete
-      habits/[id]/log.tsx   log-with-notes screen
+  app/                            expo-router routes
+    index.tsx                     redirects by session state
+    (auth)/                       sign-in, sign-up  (redirects to app when authed)
+    (app)/                        authenticated area
+      index.tsx                   dashboard — habit cards, excludes archived habits
+      habits/new.tsx               create-habit form
+      habits/archived.tsx          archived habits + unarchive
+      habits/[id]/edit.tsx         edit-habit form, delete, Archive-vs-Keep prompt
+      habits/[id]/logs/index.tsx   per-habit log list (+ start-date-history markers)
+      habits/[id]/logs/new.tsx     add a log (merged log-with-notes / add-past-log)
+      habits/[id]/logs/[logId].tsx edit a log, delete
   api/
     client.ts              apiFetch — authenticated fetch via authClient.$fetch
-    habits.ts               listHabits/createHabit/updateHabit/deleteHabit/createLog
-    types.ts                ApiHabit (Habit & { logs })
+    habits.ts               listHabits/createHabit/updateHabit/deleteHabit/createLog/
+                             updateLog/deleteLog/archiveHabit/unarchiveHabit/
+                             archiveAndCloneHabit
+    types.ts                ApiHabit (Habit & { logs, startDateHistory })
   components/
     ui.tsx                 shared form primitives (Screen, Field, PrimaryButton, ...)
-    HabitCard.tsx           one habit's view tiles + log button
+    HabitCard.tsx           one habit's view tiles + log button + Logs link
     HabitForm.tsx           shared create/edit form (name, start date, views editor)
+    LogForm.tsx             shared create/edit form for a single log
     ViewTile.tsx            one view's value, tinted by computeHighlight
     StreakWarning.tsx       the streak demotivation notice
   hooks/
@@ -41,6 +47,7 @@ src/
   lib/
     auth.ts                Better Auth client (SecureStore on native, cookies on web)
     config.ts               EXPO_PUBLIC_API_URL
+    date-format.ts           log-timestamp display/parsing (raw ISO <-> local text)
     forms.ts                Zod error -> field messages
     theme.ts                 app UI palette (separate from @tracker/core's highlight colors)
     timezone.ts              device IANA timezone
