@@ -47,6 +47,28 @@ interface HabitJson {
 }
 
 describe("habits API", () => {
+  it("CORS preflight allows PATCH and DELETE (regression: @fastify/cors defaults to GET,HEAD,POST only)", async () => {
+    // app.inject() bypasses actual browser CORS enforcement, so this test
+    // doesn't catch the bug by exercising a blocked request — it catches it
+    // by checking the preflight response @fastify/cors computes, the same
+    // computation a real browser reads before deciding whether to send the
+    // real PATCH/DELETE request at all. Without `methods` set in app.ts,
+    // this assertion fails because the default omits PATCH and DELETE,
+    // which is exactly what silently broke habit edit/delete from a browser.
+    for (const method of ["PATCH", "DELETE"]) {
+      const preflight = await app.inject({
+        method: "OPTIONS",
+        url: "/api/habits/some-id",
+        headers: {
+          origin: "http://localhost:8081", // matches vitest.config.ts's WEB_ORIGIN
+          "access-control-request-method": method,
+        },
+      });
+      expect(preflight.statusCode).toBeLessThan(300);
+      expect(String(preflight.headers["access-control-allow-methods"])).toContain(method);
+    }
+  });
+
   it("is 401 on every route without a session", async () => {
     const noCookie = { headers: {} };
     expect((await app.inject({ method: "GET", url: "/api/habits", ...noCookie })).statusCode).toBe(

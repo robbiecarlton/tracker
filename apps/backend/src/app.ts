@@ -20,6 +20,13 @@ export function buildApp(): FastifyInstance {
   app.register(cors, {
     origin: [env.WEB_ORIGIN],
     credentials: true,
+    // @fastify/cors defaults to "GET,HEAD,POST" — PATCH/DELETE (used by the
+    // habits API) aren't "simple" methods, so a cross-origin PATCH/DELETE
+    // triggers a preflight OPTIONS request; without this, the browser's
+    // preflight sees those methods aren't allowed and silently blocks the
+    // real request before it ever reaches the server. Native (Expo/RN)
+    // fetch doesn't enforce CORS, so this only bit web.
+    methods: ["GET", "POST", "PATCH", "DELETE"],
   });
 
   // Mount Better Auth on /api/auth/*
