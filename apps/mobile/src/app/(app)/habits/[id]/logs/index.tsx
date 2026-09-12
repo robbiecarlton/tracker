@@ -3,7 +3,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { deleteLog } from "@/api/habits";
-import { Screen } from "@/components/ui";
+import { BackButton, Screen } from "@/components/ui";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHabits } from "@/hooks/useHabits";
 import { confirmAlert } from "@/lib/confirm";
@@ -39,6 +39,7 @@ export default function LogList() {
   if (!habit) {
     return (
       <Screen>
+        <BackButton onPress={() => router.back()} />
         <Text style={{ color: theme.colors.text.muted }}>Habit not found.</Text>
       </Screen>
     );
@@ -71,6 +72,9 @@ export default function LogList() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.backRow}>
+        <BackButton onPress={() => router.back()} />
+      </View>
       <View style={styles.header}>
         <Text style={styles.heading}>{habit.name} — Logs</Text>
         <Pressable
@@ -147,6 +151,7 @@ export default function LogList() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background, paddingTop: 60 },
+  backRow: { paddingHorizontal: 20, marginBottom: 4 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",

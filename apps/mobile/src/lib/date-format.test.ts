@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   formatCalendarDate,
   formatLogTimestamp,
   formatLogTimestampInput,
   parseLogTimestampInput,
+  todayInZone,
 } from "./date-format";
 
 const UTC = "UTC";
@@ -56,5 +57,21 @@ describe("formatLogTimestampInput", () => {
     const formatted = formatLogTimestampInput(iso, "America/Denver");
     expect(formatted).toBe("2026-09-11 15:45");
     expect(parseLogTimestampInput(formatted, "America/Denver")).toBe(iso);
+  });
+});
+
+describe("todayInZone", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("uses the given zone's calendar date, not UTC's", () => {
+    // 8pm Sept 11 in America/Denver (UTC-6, MDT in September) is already
+    // 2am Sept 12 in UTC — the exact off-by-one this function exists to
+    // avoid (a new habit's default start date landing "tomorrow").
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-12T02:00:00Z"));
+    expect(todayInZone("America/Denver")).toBe("2026-09-11");
+    expect(todayInZone(UTC)).toBe("2026-09-12");
   });
 });

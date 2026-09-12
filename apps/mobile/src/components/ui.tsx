@@ -18,6 +18,15 @@ export function Title({ children }: { children: ReactNode }) {
   return <Text style={styles.title}>{children}</Text>;
 }
 
+/** A "‹ Back" link. Router-agnostic on purpose — pass `onPress={() => router.back()}`. */
+export function BackButton({ label = "Back", onPress }: { label?: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={8} style={styles.backButton}>
+      <Text style={styles.backButtonText}>‹ {label}</Text>
+    </Pressable>
+  );
+}
+
 export function Field({
   label,
   error,
@@ -81,6 +90,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   title: { fontSize: 28, fontWeight: "700", marginBottom: 8, color: theme.colors.text.primary },
+  backButton: { alignSelf: "flex-start", paddingVertical: 4, marginBottom: 4 },
+  backButtonText: { color: theme.colors.text.muted, fontSize: 15, fontWeight: "600" },
   field: { gap: 6 },
   label: { fontSize: 13, fontWeight: "600", color: theme.colors.text.secondary },
   input: {

@@ -2,6 +2,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { unarchiveHabit } from "@/api/habits";
+import { BackButton } from "@/components/ui";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHabits } from "@/hooks/useHabits";
 import { formatCalendarDate } from "@/lib/date-format";
@@ -28,6 +29,9 @@ export default function ArchivedHabits() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.backRow}>
+        <BackButton onPress={() => router.back()} />
+      </View>
       <Text style={styles.heading}>Archived habits</Text>
 
       {loading && archived.length === 0 ? null : error ? (
@@ -77,6 +81,7 @@ export default function ArchivedHabits() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background, paddingTop: 60 },
+  backRow: { paddingHorizontal: 20, marginBottom: 4 },
   heading: {
     fontSize: 24,
     fontWeight: "700",

@@ -6,6 +6,7 @@ import { archiveAndCloneHabit, deleteHabit, updateHabit } from "@/api/habits";
 import type { ApiHabit } from "@/api/types";
 import { HabitForm, rowFromView } from "@/components/HabitForm";
 import { Screen } from "@/components/ui";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHabits } from "@/hooks/useHabits";
 import { confirmAlert } from "@/lib/confirm";
 import { theme } from "@/lib/theme";
@@ -13,6 +14,7 @@ import { theme } from "@/lib/theme";
 export default function EditHabit() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useCurrentUser();
   const { habits, loading, refetch } = useHabits();
   const habit = habits.find((h) => h.id === id);
 
@@ -107,6 +109,7 @@ export default function EditHabit() {
       initialStartDate={habit.startDate.slice(0, 10)}
       initialViews={habit.views.map(rowFromView)}
       submitLabel="Save"
+      timeZone={user?.timeZone ?? "UTC"}
       onSubmit={async (input) => {
         const startDateChanged = input.startDate !== habit.startDate.slice(0, 10);
         // Same conversion the backend applies, so client and server always

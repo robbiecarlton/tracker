@@ -9,6 +9,20 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-09-12 — Post-Phase-4 fixes
+
+### Fixed
+
+- **`@tracker/mobile` 0.3.1**: a new habit's default start date used
+  `new Date().toISOString()` — UTC's current date, not the user's — so
+  anyone west of UTC in the evening got "tomorrow" as the default. Fixed
+  with a new `todayInZone()` helper.
+
+### Added
+
+- **`@tracker/mobile` 0.3.1**: back buttons on the habit form, the per-habit
+  logs page, and the archived-habits page.
+
 ## 2026-09-12 — Phase 4 log management
 
 ### Added

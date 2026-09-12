@@ -7,9 +7,11 @@ import {
   type Unit,
   type ViewKind,
 } from "@tracker/core";
+import { useRouter } from "expo-router";
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Field, FormError, PrimaryButton, Screen, Title } from "@/components/ui";
+import { BackButton, Field, FormError, PrimaryButton, Screen, Title } from "@/components/ui";
+import { todayInZone } from "@/lib/date-format";
 import { fieldErrors } from "@/lib/forms";
 import { theme } from "@/lib/theme";
 import { viewLabel } from "@/lib/view-format";
@@ -193,9 +195,10 @@ function ViewRowEditor({
 
 export function HabitForm({
   initialName = "",
-  initialStartDate = new Date().toISOString().slice(0, 10),
+  initialStartDate,
   initialViews,
   submitLabel,
+  timeZone,
   onSubmit,
   footer,
 }: {
@@ -203,12 +206,17 @@ export function HabitForm({
   initialStartDate?: string;
   initialViews: ViewRow[];
   submitLabel: string;
+  /** Used to default a new habit's start date to "today" in the user's own
+   * calendar day, not UTC's (see `todayInZone`). Unused when
+   * `initialStartDate` is given (editing an existing habit). */
+  timeZone: string;
   onSubmit: (input: HabitFormInput) => Promise<{ error?: string } | void>;
   /** Extra content rendered below the submit button, e.g. a Delete button. */
   footer?: ReactNode;
 }) {
+  const router = useRouter();
   const [name, setName] = useState(initialName);
-  const [startDate, setStartDate] = useState(initialStartDate);
+  const [startDate, setStartDate] = useState(initialStartDate ?? todayInZone(timeZone));
   const [views, setViews] = useState<ViewRow[]>(initialViews);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string>();
@@ -246,6 +254,7 @@ export function HabitForm({
 
   return (
     <Screen>
+      <BackButton onPress={() => router.back()} />
       <Title>{submitLabel === "Save" ? "Edit habit" : "New habit"}</Title>
       <Field label="Name" value={name} onChangeText={setName} error={errors.name} />
       <Field

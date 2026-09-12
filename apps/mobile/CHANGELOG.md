@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-12
+
+### Fixed
+
+- A new habit's default start date used `new Date().toISOString().slice(0, 10)`
+  — UTC's current date, not the user's. Anyone west of UTC in the evening got
+  "tomorrow" as the default (e.g. 8pm in America/Denver is already the next
+  day in UTC). Fixed with a new `todayInZone()` (`lib/date-format.ts`);
+  `HabitForm` now takes a required `timeZone` prop to compute this default
+  when creating a habit (an explicit `initialStartDate`, as when editing, is
+  unaffected and still wins).
+
+### Added
+
+- Back buttons (`components/ui.tsx`'s new `BackButton`) on the habit form
+  (add and edit), the per-habit logs page, and the archived-habits page —
+  previously the only way off those screens was a swipe/hardware-back
+  gesture or (on the form) successfully submitting.
+
 ## [0.3.0] - 2026-09-12
 
 ### Added

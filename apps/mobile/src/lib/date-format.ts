@@ -6,11 +6,24 @@ import { DateTime } from "luxon";
  * `ViewResult`, not raw dates) — a log's timestamp carries a time-of-day
  * that must be interpreted in the user's zone before crossing the API
  * boundary as a UTC instant, unlike a bare calendar date (the habit
- * start-date field, which needs no such conversion and stays server-side
- * logic — see `@tracker/core`'s `habitFormSchema`).
+ * start-date field's *value* needs no such conversion — see
+ * `@tracker/core`'s `habitFormSchema`). Its *default value* still needs the
+ * user's zone, though: "today" isn't the same date everywhere at once, so
+ * `todayInZone` below exists for that one purpose.
  */
 
 const INPUT_FORMAT = "yyyy-MM-dd HH:mm";
+
+/**
+ * Today's calendar date in the user's timezone, as "YYYY-MM-DD". Used for a
+ * new habit's default start date — `new Date().toISOString().slice(0, 10)`
+ * gives *UTC's* current date, which is the wrong day for anyone west of UTC
+ * once it's evening locally (e.g. 8pm Sept 11 in America/Denver is already
+ * Sept 12 in UTC).
+ */
+export function todayInZone(timeZone: string): string {
+  return DateTime.now().setZone(timeZone).toFormat("yyyy-MM-dd");
+}
 
 /** Display string for a log row, e.g. "Sep 11, 2026, 3:45 PM". */
 export function formatLogTimestamp(iso: string, timeZone: string): string {
