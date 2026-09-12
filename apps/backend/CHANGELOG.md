@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-12
+
+### Fixed
+
+- Sign-in would silently fail to persist once the web frontend and this API
+  are deployed as separate services on different domains (e.g. two Railway
+  subdomains) — a cross-*site* `fetch`, not just cross-origin like local
+  dev's two localhost ports. Better Auth's cookie default
+  (`sameSite: "lax"`) is same-site-only, so the browser wouldn't attach the
+  session cookie there. Fixed with `auth.ts`'s `advanced.defaultCookieAttributes`,
+  set to `"none"` only when `NODE_ENV=production` (must stay `"lax"` in dev,
+  where `WEB_ORIGIN` is `http://` and a `SameSite=None` cookie without
+  `Secure` is just dropped). See `docs/RAILWAY.md`.
+
 ## [0.3.0] - 2026-09-12
 
 ### Added

@@ -9,6 +9,24 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-09-12 — Railway deployment
+
+Added `docs/RAILWAY.md`, a full runbook for deploying the backend + web
+frontend + a managed Postgres to Railway as two separate services.
+
+### Fixed
+
+- **`@tracker/backend` 0.3.1**: cross-site sign-in — the web frontend and
+  this API are separate Railway services on different domains, and Better
+  Auth's cookie default (`sameSite: "lax"`) isn't sent on a cross-site
+  `fetch`. Fixed with an env-gated `advanced.defaultCookieAttributes` in
+  `auth.ts` (stays `"lax"` in local dev).
+
+### Added
+
+- **`@tracker/mobile` 0.3.3**: a production `start` script (`serve -s dist`)
+  — nothing previously served the static web export outside local dev.
+
 ## 2026-09-12 — Post-Phase-4 fixes
 
 ### Fixed

@@ -82,6 +82,11 @@ npm run db:rollback             # revert the most recent migration
 npm run db:reset                # wipe local PGlite data and re-migrate
 ```
 
+## Deployment
+
+Backend + web frontend deploy to Railway (with a managed Postgres) — see
+[`docs/RAILWAY.md`](./docs/RAILWAY.md).
+
 ## Conventions
 
 Semantic versioning; "Keep a Changelog" format; unit tests alongside logic; no

@@ -14,6 +14,20 @@ export const auth = betterAuth({
   },
   trustedOrigins: [env.WEB_ORIGIN, "tracker://"],
   plugins: [expo()],
+  advanced: {
+    // In production the web frontend and this API are deployed as separate
+    // services on different domains (e.g. two Railway subdomains) — a
+    // cross-site `fetch`, not just cross-origin like local dev's two
+    // localhost ports. Better Auth's cookie default (`sameSite: "lax"`)
+    // is same-site-only and browsers won't attach it there, silently
+    // breaking sign-in. `secure` doesn't need forcing here — it's already
+    // auto-true whenever BETTER_AUTH_URL starts with "https://". Must stay
+    // "lax" in dev: WEB_ORIGIN is http:// there, and a SameSite=None cookie
+    // without Secure is just dropped by the browser.
+    defaultCookieAttributes: {
+      sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+    },
+  },
   user: {
     additionalFields: {
       // IANA timezone, captured at signup. Used by view calculations later.

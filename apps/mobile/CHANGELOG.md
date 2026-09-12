@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-09-12
+
+### Added
+
+- A `start` script (`serve -s dist -l $PORT`) and a new `serve` dependency,
+  so the static web export (`npm run build`) can actually be served in
+  production — previously nothing did. `-s` is `serve`'s single-page-app
+  flag: any not-found path falls back to `index.html`, which Expo Router's
+  client-side history-based routing then resolves — needed because dynamic
+  routes (`[id]`, `[logId]`) export as literal bracket-named files, not
+  per-instance pages. See `docs/RAILWAY.md`.
+
 ## [0.3.2] - 2026-09-12
 
 ### Added
