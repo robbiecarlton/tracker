@@ -135,18 +135,26 @@ export function computePercentage(
   const now = nowInZone(ctx);
   const habitStartUnitStart = startOfUnit(parseInZone(habit.startDate, ctx.timeZone), unit);
   const nowUnitStart = startOfUnit(now, unit);
-  const totalUnits = unitsElapsedBetween(habitStartUnitStart, nowUnitStart, unit);
-
-  if (totalUnits === 0) {
-    return { kind: "percentage", rate: null, loggedUnits: 0, totalUnits: 0, unit };
-  }
+  const completedUnits = unitsElapsedBetween(habitStartUnitStart, nowUnitStart, unit);
 
   const logged = bucketLogsByUnit(logs, unit, ctx.timeZone);
   let loggedUnits = 0;
   let cursor = habitStartUnitStart;
-  for (let i = 0; i < totalUnits; i++) {
+  for (let i = 0; i < completedUnits; i++) {
     if (logged.has(unitKey(cursor, unit))) loggedUnits += 1;
     cursor = addUnits(cursor, unit, 1);
+  }
+
+  // Today (the in-progress unit) gives instant feedback, like Streak/Days:
+  // logging it counts as a hit right away, joining both the numerator and
+  // the denominator. If it's not logged yet, it's forgiven — excluded
+  // entirely rather than counted as a miss.
+  const todayLogged = logged.has(unitKey(nowUnitStart, unit));
+  const totalUnits = completedUnits + (todayLogged ? 1 : 0);
+  if (todayLogged) loggedUnits += 1;
+
+  if (totalUnits === 0) {
+    return { kind: "percentage", rate: null, loggedUnits: 0, totalUnits: 0, unit };
   }
 
   return { kind: "percentage", rate: loggedUnits / totalUnits, loggedUnits, totalUnits, unit };

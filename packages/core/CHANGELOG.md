@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-12
+
+### Changed
+
+- **Percentage now gives instant feedback**, matching Streak/Days: logging
+  the current (in-progress) unit counts as a hit right away, joining both
+  the numerator and denominator, instead of being excluded until the unit
+  is over. A missing log for the current unit is still forgiven — excluded,
+  not counted as a miss. Previously Percentage was fully forgiving (the
+  in-progress unit never counted either way), which made a freshly-logged
+  "today" invisible in the rate until the next day — confusing in practice,
+  so this was revisited and changed. Since keeps its existing fully-forgiving
+  behavior (unaffected — a fresh log already reads as "0 units ago", so it
+  was already immediate).
+
 ## [0.3.1] - 2026-09-11
 
 ### Fixed

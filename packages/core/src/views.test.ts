@@ -177,8 +177,9 @@ describe("computePercentage", () => {
     expect(result.rate).toBe(1);
   });
 
-  it("is 0 when no elapsed unit was logged", () => {
+  it("is 0 when no elapsed unit was logged, and today (unlogged) doesn't count as a miss", () => {
     const result = computePercentage(h, v, [], ctxAt("2026-01-04T12:00:00Z"));
+    expect(result.totalUnits).toBe(3); // just the 3 completed days; today excluded, forgiven
     expect(result.rate).toBe(0);
   });
 
@@ -190,12 +191,25 @@ describe("computePercentage", () => {
     expect(result.rate).toBeCloseTo(1 / 3);
   });
 
-  it("does not let a log in the current in-progress unit affect the rate (unlike Streak)", () => {
+  it("counts a log in the current in-progress unit immediately (instant feedback, like Streak)", () => {
     const logs = [log("2026-01-04T08:00:00Z")]; // logged *today*, the in-progress unit
     const result = computePercentage(h, v, logs, ctxAt("2026-01-04T12:00:00Z"));
-    expect(result.totalUnits).toBe(3);
-    expect(result.loggedUnits).toBe(0); // today's log doesn't count toward the denominator's units
-    expect(result.rate).toBe(0);
+    expect(result.totalUnits).toBe(4); // 3 completed days + today, since today counts
+    expect(result.loggedUnits).toBe(1);
+    expect(result.rate).toBe(0.25);
+  });
+
+  it("is 1 (100%) when a habit started today and today is already logged", () => {
+    const startsToday = habit({ startDate: "2026-01-10T00:00:00Z" });
+    const logs = [log("2026-01-10T08:00:00Z")];
+    const result = computePercentage(startsToday, v, logs, ctxAt("2026-01-10T12:00:00Z"));
+    expect(result).toEqual({
+      kind: "percentage",
+      rate: 1,
+      loggedUnits: 1,
+      totalUnits: 1,
+      unit: "day",
+    });
   });
 });
 
