@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 import { deleteLog, updateLog } from "@/api/habits";
 import { LogForm } from "@/components/LogForm";
-import { Screen } from "@/components/ui";
+import { BackButton, Screen } from "@/components/ui";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHabits } from "@/hooks/useHabits";
 import { confirmAlert } from "@/lib/confirm";
@@ -36,6 +36,7 @@ export default function EditLog() {
   if (!log) {
     return (
       <Screen>
+        <BackButton onPress={() => router.back()} />
         <Text style={{ color: theme.colors.text.muted }}>Log not found.</Text>
       </Screen>
     );

@@ -22,6 +22,8 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 - **`@tracker/mobile` 0.3.1**: back buttons on the habit form, the per-habit
   logs page, and the archived-habits page.
+- **`@tracker/mobile` 0.3.2**: extended the same back button to the log form
+  (add and edit).
 
 ## 2026-09-12 — Phase 4 log management
 

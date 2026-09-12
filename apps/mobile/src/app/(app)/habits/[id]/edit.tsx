@@ -5,7 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 import { archiveAndCloneHabit, deleteHabit, updateHabit } from "@/api/habits";
 import type { ApiHabit } from "@/api/types";
 import { HabitForm, rowFromView } from "@/components/HabitForm";
-import { Screen } from "@/components/ui";
+import { BackButton, Screen } from "@/components/ui";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHabits } from "@/hooks/useHabits";
 import { confirmAlert } from "@/lib/confirm";
@@ -36,6 +36,7 @@ export default function EditHabit() {
   if (!habit) {
     return (
       <Screen>
+        <BackButton onPress={() => router.back()} />
         <Text style={{ color: theme.colors.text.muted }}>Habit not found.</Text>
       </Screen>
     );

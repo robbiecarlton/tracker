@@ -1,5 +1,6 @@
+import { useRouter } from "expo-router";
 import { useState, type ReactNode } from "react";
-import { Field, FormError, PrimaryButton, Screen, Title } from "@/components/ui";
+import { BackButton, Field, FormError, PrimaryButton, Screen, Title } from "@/components/ui";
 import { parseLogTimestampInput } from "@/lib/date-format";
 
 /**
@@ -31,6 +32,7 @@ export function LogForm({
   /** Extra content rendered below the submit button, e.g. a Delete button. */
   footer?: ReactNode;
 }) {
+  const router = useRouter();
   const [timestampInput, setTimestampInput] = useState(initialTimestampInput);
   const [notes, setNotes] = useState(initialNotes);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -64,6 +66,7 @@ export function LogForm({
 
   return (
     <Screen>
+      <BackButton onPress={() => router.back()} />
       <Title>{submitLabel === "Save" ? "Edit log" : "Add log"}</Title>
       <Field
         label={
