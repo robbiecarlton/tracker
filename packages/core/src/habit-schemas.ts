@@ -8,7 +8,14 @@ import { UNITS } from "./units";
  * pattern as `auth-schemas.ts`.
  */
 
-export const viewKindSchema = z.enum(["cumulative", "streak", "percentage", "days", "since"]);
+export const viewKindSchema = z.enum([
+  "cumulative",
+  "streak",
+  "percentage",
+  "days",
+  "since",
+  "heatmap",
+]);
 
 export const targetTypeSchema = z.enum(["at_least", "at_most", "exactly"]);
 
@@ -56,6 +63,13 @@ export const habitViewInputSchema = z
         path: ["cumulationGoal"],
       });
     }
+    if (view.kind === "heatmap" && view.unit === "hour") {
+      ctx.addIssue({
+        code: "custom",
+        message: "Heatmap's box size is Day, Week, or Month — not Hour",
+        path: ["unit"],
+      });
+    }
   });
 
 export const habitFormSchema = z.object({
@@ -101,6 +115,17 @@ export const createHabitSchema = habitFormSchema.extend({
   allowDirectLogging: z.boolean().optional(),
 });
 
+/**
+ * Drag-to-reorder: the full new relative order for one sibling group
+ * (everything sharing `parentId`). The route handler checks `orderedIds` is
+ * exactly a permutation of that group's current ids — this schema only
+ * checks shape.
+ */
+export const reorderHabitsSchema = z.object({
+  parentId: z.string().nullable(),
+  orderedIds: z.array(z.string()).min(1),
+});
+
 export const createLogSchema = z.object({
   /** ISO datetime. Omitted = server uses now(). Same strict-parse rationale
    *  as `habitFormSchema.startDate` above — native `Date.parse` is too
@@ -134,5 +159,6 @@ export type ViewKindInput = z.infer<typeof viewKindSchema>;
 export type HabitViewInput = z.infer<typeof habitViewInputSchema>;
 export type HabitFormInput = z.infer<typeof habitFormSchema>;
 export type CreateHabitInput = z.infer<typeof createHabitSchema>;
+export type ReorderHabitsInput = z.infer<typeof reorderHabitsSchema>;
 export type CreateLogInput = z.infer<typeof createLogSchema>;
 export type UpdateLogInput = z.infer<typeof updateLogSchema>;

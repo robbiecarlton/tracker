@@ -12,6 +12,7 @@ const VIEW_LABELS: Record<ViewKind, string> = {
   percentage: "Percentage",
   days: "Days",
   since: "Since",
+  heatmap: "Heatmap",
 };
 
 export function viewLabel(kind: ViewKind): string {
@@ -45,6 +46,11 @@ export function formatViewValue(result: ViewResult): string {
       return result.value == null
         ? "Never logged"
         : `${result.value} ${unitLabel(result.unit, result.value)} ago`;
+    case "heatmap":
+      // Heatmap renders as its own grid (`components/Heatmap.tsx`), never
+      // as a `ViewTile` — this branch only exists so the switch stays
+      // exhaustive over `ViewResult`.
+      return `${result.buckets.reduce((sum, b) => sum + b.count, 0)} logs`;
     default: {
       const exhaustive: never = result;
       return exhaustive;

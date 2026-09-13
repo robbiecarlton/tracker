@@ -18,6 +18,7 @@ function habit(id: string, overrides: Partial<Habit> = {}): Habit {
     archivedAt: null,
     parentId: null,
     allowDirectLogging: true,
+    sortOrder: 0,
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-01T00:00:00Z",
     ...overrides,

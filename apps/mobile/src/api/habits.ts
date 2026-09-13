@@ -3,6 +3,7 @@ import type {
   CreateLogInput,
   HabitFormInput,
   HabitLog,
+  ReorderHabitsInput,
   UpdateLogInput,
 } from "@tracker/core";
 import { apiFetch } from "./client";
@@ -15,6 +16,10 @@ export const createHabit = (input: CreateHabitInput) =>
 
 export const updateHabit = (id: string, input: HabitFormInput) =>
   apiFetch<{ habit: ApiHabit }>(`/api/habits/${id}`, { method: "PATCH", body: input });
+
+/** Persists a drag-reorder — `orderedIds` must be exactly the current sibling group's ids. */
+export const reorderHabits = (input: ReorderHabitsInput) =>
+  apiFetch<{ habits: ApiHabit[] }>("/api/habits/reorder", { method: "PATCH", body: input });
 
 /** How to resolve a habit's active subhabits when it's deleted or archived. */
 type ChildrenAction = "cascade" | "top_level" | "grandparent";

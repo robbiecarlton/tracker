@@ -26,6 +26,7 @@ export interface HabitJson {
   archivedAt: string | null;
   parentId: string | null;
   allowDirectLogging: boolean;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
   views: { id: string; kind: string; unit?: string; target?: number; targetType?: string }[];

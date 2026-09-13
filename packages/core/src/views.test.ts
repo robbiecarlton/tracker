@@ -1,3 +1,4 @@
+import { DateTime } from "luxon";
 import { describe, expect, it } from "vitest";
 import type { Habit, HabitLog, HabitView } from "./domain";
 import type { TimeContext } from "./time";
@@ -6,6 +7,7 @@ import {
   computeCumulative,
   computeDays,
   computeHabitView,
+  computeHeatmap,
   computePercentage,
   computeSince,
   computeStreak,
@@ -23,6 +25,7 @@ function habit(overrides: Partial<Habit> = {}): Habit {
     archivedAt: null,
     parentId: null,
     allowDirectLogging: true,
+    sortOrder: 0,
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-01T00:00:00Z",
     ...overrides,
@@ -305,6 +308,88 @@ describe("computeSince", () => {
   });
 });
 
+describe("computeHeatmap", () => {
+  const h = habit({ startDate: "2020-01-01T00:00:00Z" }); // long before any window tested
+  // 2026-09-10 is a Thursday; that week's Monday is 2026-09-07.
+  const now = ctxAt("2026-09-10T12:00:00Z");
+
+  it("returns the fixed bucket count per unit", () => {
+    expect(computeHeatmap(h, view({ kind: "heatmap", unit: "day" }), [], now).buckets).toHaveLength(
+      182,
+    );
+    expect(
+      computeHeatmap(h, view({ kind: "heatmap", unit: "week" }), [], now).buckets,
+    ).toHaveLength(52);
+    expect(
+      computeHeatmap(h, view({ kind: "heatmap", unit: "month" }), [], now).buckets,
+    ).toHaveLength(24);
+  });
+
+  it("defaults to day when unit is omitted", () => {
+    const result = computeHeatmap(h, view({ kind: "heatmap" }), [], now);
+    expect(result.unit).toBe("day");
+    expect(result.buckets).toHaveLength(182);
+  });
+
+  it("day-unit window is 26 complete ISO-Monday weeks — every 7th bucket starts on a Monday", () => {
+    const result = computeHeatmap(h, view({ kind: "heatmap", unit: "day" }), [], now);
+    for (let i = 0; i < result.buckets.length; i += 7) {
+      const weekday = DateTime.fromISO(result.buckets[i]!.start, { zone: "utc" }).weekday;
+      expect(weekday).toBe(1); // Luxon: 1 = Monday
+    }
+    // Exactly 26 weeks' worth, and the window ends within the current week
+    // (today, 2026-09-10, falls in the last 7-day group).
+    const todayKey = DateTime.fromISO("2026-09-10T00:00:00Z", { zone: "utc" }).toISODate();
+    const lastWeekStarts = result.buckets
+      .slice(-7)
+      .map((b) => DateTime.fromISO(b.start, { zone: "utc" }).toISODate());
+    expect(lastWeekStarts).toContain(todayKey);
+  });
+
+  it("counts multiple logs in the same bucket, and buckets are 0 when unlogged", () => {
+    const logs = [
+      log("2026-09-10T08:00:00Z"),
+      log("2026-09-10T09:00:00Z"),
+      log("2026-09-10T20:00:00Z"),
+    ];
+    const result = computeHeatmap(h, view({ kind: "heatmap", unit: "day" }), logs, now);
+    const today = result.buckets.find(
+      (b) => DateTime.fromISO(b.start, { zone: "utc" }).toISODate() === "2026-09-10",
+    );
+    expect(today?.count).toBe(3);
+
+    const yesterday = result.buckets.find(
+      (b) => DateTime.fromISO(b.start, { zone: "utc" }).toISODate() === "2026-09-09",
+    );
+    expect(yesterday?.count).toBe(0);
+  });
+
+  it("every bucket is 0 with no logs", () => {
+    const result = computeHeatmap(h, view({ kind: "heatmap", unit: "week" }), [], now);
+    expect(result.buckets.every((b) => b.count === 0)).toBe(true);
+  });
+
+  it("week/month units use a plain trailing window ending at the current bucket, no calendar alignment", () => {
+    const logs = [log("2026-09-10T12:00:00Z")];
+    const weekResult = computeHeatmap(h, view({ kind: "heatmap", unit: "week" }), logs, now);
+    // The current (possibly in-progress) week is the last bucket.
+    const currentWeekStart = DateTime.fromISO("2026-09-10T12:00:00Z", { zone: "UTC" })
+      .startOf("week")
+      .toISODate();
+    expect(DateTime.fromISO(weekResult.buckets.at(-1)!.start, { zone: "utc" }).toISODate()).toBe(currentWeekStart);
+    expect(weekResult.buckets.at(-1)!.count).toBe(1);
+
+    const monthResult = computeHeatmap(h, view({ kind: "heatmap", unit: "month" }), logs, now);
+    const currentMonthStart = DateTime.fromISO("2026-09-10T12:00:00Z", { zone: "UTC" })
+      .startOf("month")
+      .toISODate();
+    expect(DateTime.fromISO(monthResult.buckets.at(-1)!.start, { zone: "utc" }).toISODate()).toBe(
+      currentMonthStart,
+    );
+    expect(monthResult.buckets.at(-1)!.count).toBe(1);
+  });
+});
+
 describe("computeHabitView dispatcher", () => {
   const h = habit({ startDate: "2026-01-01T00:00:00Z" });
   const ctx = ctxAt("2026-01-10T12:00:00Z");
@@ -315,6 +400,7 @@ describe("computeHabitView dispatcher", () => {
     expect(computeHabitView(h, view({ kind: "percentage" }), [], ctx).kind).toBe("percentage");
     expect(computeHabitView(h, view({ kind: "days" }), [], ctx).kind).toBe("days");
     expect(computeHabitView(h, view({ kind: "since" }), [], ctx).kind).toBe("since");
+    expect(computeHabitView(h, view({ kind: "heatmap" }), [], ctx).kind).toBe("heatmap");
   });
 
   it("applies defaults when unit/days are omitted", () => {

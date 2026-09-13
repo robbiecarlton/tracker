@@ -9,6 +9,26 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-09-12 — Custom sort order + heatmap view
+
+Habits can now be dragged into whatever order you like (top-level, or
+within one parent's subhabits), and gain a sixth view type: a
+GitHub/Anki-style calendar heatmap with a configurable day/week/month box
+size.
+
+### Added
+
+- **`@tracker/core` 0.7.0**: `Habit.sortOrder`, `reorderHabitsSchema`;
+  `HeatmapResult`/`computeHeatmap`/`countLogsByUnit`, `"heatmap"` added to
+  `ViewKind`.
+- **`@tracker/backend` 0.5.0**: `habit.sort_order` (migration `0005`),
+  `PATCH /api/habits/reorder`; every create/reparent path appends to the
+  end of the new sibling group.
+- **`@tracker/mobile` 0.6.0**: drag-to-reorder on the dashboard (new
+  `react-native-gesture-handler`/`reanimated`/`draggable-flatlist`
+  dependencies); a `Heatmap` view kind selectable on the habit form,
+  rendered as a full-width calendar grid on `HabitCard`.
+
 ## 2026-09-12 — Version badge
 
 ### Added

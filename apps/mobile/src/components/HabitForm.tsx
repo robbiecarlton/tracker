@@ -21,7 +21,9 @@ import { ChipRow } from "./ChipRow";
 import { HabitPickerModal } from "./HabitPickerModal";
 import { StreakWarning } from "./StreakWarning";
 
-const VIEW_KINDS: ViewKind[] = ["cumulative", "streak", "percentage", "days", "since"];
+const VIEW_KINDS: ViewKind[] = ["cumulative", "streak", "percentage", "days", "since", "heatmap"];
+/** Heatmap's box size is day/week/month only — no hour (schema-enforced too). */
+const HEATMAP_UNITS = UNITS.filter((u) => u !== "hour");
 const TARGET_TYPES: TargetType[] = ["at_least", "at_most", "exactly"];
 const TARGET_TYPE_LABELS: Record<TargetType, string> = {
   at_least: "At least",
@@ -105,13 +107,19 @@ function ViewRowEditor({
       <ChipRow
         options={VIEW_KINDS}
         value={row.kind}
-        onChange={(kind) => onChange({ kind })}
+        onChange={(kind) =>
+          // Heatmap can't take "hour" as its box size — clamp back to the
+          // default rather than carrying over whatever unit the row had
+          // under its previous kind.
+          onChange(kind === "heatmap" && row.unit === "hour" ? { kind, unit: "day" } : { kind })
+        }
         labels={{
           cumulative: viewLabel("cumulative"),
           streak: viewLabel("streak"),
           percentage: viewLabel("percentage"),
           days: viewLabel("days"),
           since: viewLabel("since"),
+          heatmap: viewLabel("heatmap"),
         }}
       />
 
@@ -119,8 +127,12 @@ function ViewRowEditor({
 
       {row.kind !== "cumulative" ? (
         <View style={styles.subField}>
-          <Text style={styles.subLabel}>Unit</Text>
-          <ChipRow options={UNITS} value={row.unit} onChange={(unit) => onChange({ unit })} />
+          <Text style={styles.subLabel}>{row.kind === "heatmap" ? "Box size" : "Unit"}</Text>
+          <ChipRow
+            options={row.kind === "heatmap" ? HEATMAP_UNITS : UNITS}
+            value={row.unit}
+            onChange={(unit) => onChange({ unit })}
+          />
         </View>
       ) : null}
 

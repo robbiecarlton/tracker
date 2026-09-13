@@ -7,7 +7,7 @@ import type { Unit } from "./units";
  * `docs/DOMAIN.md` for the full spec.
  */
 
-export type ViewKind = "cumulative" | "streak" | "percentage" | "days" | "since";
+export type ViewKind = "cumulative" | "streak" | "percentage" | "days" | "since" | "heatmap";
 
 /** Direction of an optional target on `days` / `percentage` views. */
 export type TargetType = "at_least" | "at_most" | "exactly";
@@ -16,7 +16,12 @@ export interface HabitView {
   id: string;
   habitId: string;
   kind: ViewKind;
-  /** Applies to streak / percentage / days / since. Defaults to `day`. */
+  /**
+   * Applies to streak / percentage / days / since / heatmap. Defaults to
+   * `day`. `heatmap` restricts this to `day` | `week` | `month` — no
+   * `hour` (see `habit-schemas.ts`'s `habitViewInputSchema`) — it's the
+   * heatmap's cell/bucket size, not a boundary for a single number.
+   */
   unit?: Unit;
   /** `days` view: window size N. Defaults to 7. */
   days?: number;
@@ -54,6 +59,13 @@ export interface Habit {
    * meaningful (and only settable) once it has ≥1 non-archived subhabit.
    */
   allowDirectLogging: boolean;
+  /**
+   * Drag-to-reorder position relative to other habits sharing the same
+   * `parentId` — meaningless across different `parentId` groups, only
+   * within-group relative order matters. Managed by dragging on the
+   * dashboard (`PATCH /api/habits/reorder`), never by the create/edit form.
+   */
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }
