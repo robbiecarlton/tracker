@@ -1,4 +1,5 @@
 import {
+  childrenOf,
   habitFormSchema,
   UNITS,
   type HabitFormInput,
@@ -10,11 +11,14 @@ import {
 import { useRouter } from "expo-router";
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import type { ApiHabit } from "@/api/types";
 import { BackButton, Field, FormError, PrimaryButton, Screen, Title } from "@/components/ui";
 import { todayInZone } from "@/lib/date-format";
 import { fieldErrors } from "@/lib/forms";
 import { theme } from "@/lib/theme";
 import { viewLabel } from "@/lib/view-format";
+import { ChipRow } from "./ChipRow";
+import { HabitPickerModal } from "./HabitPickerModal";
 import { StreakWarning } from "./StreakWarning";
 
 const VIEW_KINDS: ViewKind[] = ["cumulative", "streak", "percentage", "days", "since"];
@@ -74,38 +78,6 @@ function rowToInput(row: ViewRow): HabitViewInput {
     target: hasTarget ? Number(row.target) : undefined,
     targetType: hasTarget ? row.targetType : undefined,
   };
-}
-
-function ChipRow<T extends string>({
-  options,
-  value,
-  onChange,
-  labels,
-}: {
-  options: readonly T[];
-  value: T | undefined;
-  onChange: (v: T) => void;
-  labels?: Partial<Record<T, string>>;
-}) {
-  return (
-    <View style={styles.chipRow}>
-      {options.map((opt) => {
-        const active = opt === value;
-        return (
-          <Pressable
-            key={opt}
-            accessibilityRole="button"
-            onPress={() => onChange(opt)}
-            style={[styles.chip, active && styles.chipActive]}
-          >
-            <Text style={[styles.chipText, active && styles.chipTextActive]}>
-              {labels?.[opt] ?? opt}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
 }
 
 function ViewRowEditor({
@@ -197,6 +169,10 @@ export function HabitForm({
   initialName = "",
   initialStartDate,
   initialViews,
+  initialParentId = null,
+  initialAllowDirectLogging = true,
+  habitId,
+  habits,
   submitLabel,
   timeZone,
   onSubmit,
@@ -205,6 +181,13 @@ export function HabitForm({
   initialName?: string;
   initialStartDate?: string;
   initialViews: ViewRow[];
+  initialParentId?: string | null;
+  initialAllowDirectLogging?: boolean;
+  /** Undefined when creating — there's no habit yet to exclude from its own parent picker. */
+  habitId?: string;
+  /** The user's full habit list — powers the parent picker and the direct-logging toggle's
+   * "does this habit have a subhabit yet?" check. */
+  habits: ApiHabit[];
   submitLabel: string;
   /** Used to default a new habit's start date to "today" in the user's own
    * calendar day, not UTC's (see `todayInZone`). Unused when
@@ -218,9 +201,16 @@ export function HabitForm({
   const [name, setName] = useState(initialName);
   const [startDate, setStartDate] = useState(initialStartDate ?? todayInZone(timeZone));
   const [views, setViews] = useState<ViewRow[]>(initialViews);
+  const [parentId, setParentId] = useState<string | null>(initialParentId);
+  const [allowDirectLogging, setAllowDirectLogging] = useState(initialAllowDirectLogging);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string>();
   const [loading, setLoading] = useState(false);
+
+  const hasActiveSubhabit =
+    habitId != null && childrenOf(habitId, habits).some((h) => !h.archivedAt);
+  const selectedParentName = parentId ? habits.find((h) => h.id === parentId)?.name : undefined;
 
   function updateView(index: number, patch: Partial<ViewRow>) {
     setViews((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -240,6 +230,8 @@ export function HabitForm({
       name,
       startDate,
       views: views.map(rowToInput),
+      parentId,
+      allowDirectLogging,
     });
     if (!parsed.success) {
       setErrors(fieldErrors(parsed.error));
@@ -264,6 +256,44 @@ export function HabitForm({
         error={errors.startDate}
         placeholder="2026-01-01"
       />
+
+      <View style={styles.field}>
+        <Text style={styles.label}>Parent habit (optional)</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setPickerOpen(true)}
+          style={styles.pickerTrigger}
+        >
+          <Text style={styles.pickerTriggerText}>
+            {selectedParentName ?? "No parent (top-level)"}
+          </Text>
+        </Pressable>
+        {errors.parentId ? <Text style={styles.error}>{errors.parentId}</Text> : null}
+      </View>
+      <HabitPickerModal
+        visible={pickerOpen}
+        habits={habits}
+        excludeHabitId={habitId}
+        selectedId={parentId}
+        onSelect={setParentId}
+        onClose={() => setPickerOpen(false)}
+      />
+
+      {hasActiveSubhabit ? (
+        <View style={styles.field}>
+          <Text style={styles.label}>Direct logging</Text>
+          <ChipRow
+            options={["on", "off"] as const}
+            value={allowDirectLogging ? "on" : "off"}
+            onChange={(v) => setAllowDirectLogging(v === "on")}
+            labels={{ on: "Allowed", off: "Only via subhabits" }}
+          />
+          <Text style={styles.directLoggingCaption}>
+            Only shown once a habit has a subhabit — turn this off to require logging through a
+            subhabit instead of this one directly.
+          </Text>
+        </View>
+      ) : null}
 
       {views.map((row, i) => (
         <ViewRowEditor
@@ -300,18 +330,19 @@ const styles = StyleSheet.create({
   removeLink: { color: theme.colors.error, fontSize: 13 },
   subField: { gap: 6 },
   subLabel: { fontSize: 12, color: theme.colors.text.muted },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  chip: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  chipActive: { backgroundColor: theme.colors.brand, borderColor: theme.colors.brand },
-  chipText: { fontSize: 13, color: theme.colors.text.secondary },
-  chipTextActive: { color: theme.colors.onBrand, fontWeight: "600" },
   viewsError: { color: theme.colors.error, fontSize: 12 },
   addViewLink: { alignSelf: "flex-start" },
   addViewLinkText: { color: theme.colors.brand, fontWeight: "600" },
+  field: { gap: 6 },
+  label: { fontSize: 13, fontWeight: "600", color: theme.colors.text.secondary },
+  error: { color: theme.colors.error, fontSize: 12 },
+  pickerTrigger: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  pickerTriggerText: { fontSize: 16, color: theme.colors.text.primary },
+  directLoggingCaption: { fontSize: 12, color: theme.colors.text.muted },
 });

@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   boolean,
   doublePrecision,
   index,
@@ -15,10 +16,11 @@ import {
  * `habit_start_date_change`, added in Phase 4).
  *
  * This mirrors `drizzle/0001_init.up.sql`, `drizzle/0002_add_habits.up.sql`,
- * and `drizzle/0003_add_start_date_history.up.sql`, which are the source of
- * truth for the DDL (we run plain-SQL migrations). Keep the SQL and this file
- * in sync when the schema changes: `npm run db:generate -- <name>` scaffolds
- * the migration files.
+ * `drizzle/0003_add_start_date_history.up.sql`, and
+ * `drizzle/0004_add_habit_nesting.up.sql`, which are the source of truth for
+ * the DDL (we run plain-SQL migrations). Keep the SQL and this file in sync
+ * when the schema changes: `npm run db:generate -- <name>` scaffolds the
+ * migration files.
  */
 
 const timestamps = {
@@ -96,9 +98,21 @@ export const habit = pgTable(
     name: text("name").notNull(),
     startDate: timestamp("start_date", { withTimezone: true }).notNull(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
+    /**
+     * Self-referential FK for nested habits (subhabits) — `RESTRICT` is a
+     * safety net, since app code always resolves a habit's children (delete
+     * together, or null out `parentId`) inside the same transaction before
+     * removing it. See `docs/DOMAIN.md`'s "Nested habits" and
+     * `packages/core/src/habit-tree.ts`.
+     */
+    parentId: text("parent_id").references((): AnyPgColumn => habit.id, {
+      onDelete: "restrict",
+    }),
+    /** Only meaningful when this habit has ≥1 subhabit — see `habit-tree.ts`. */
+    allowDirectLogging: boolean("allow_direct_logging").notNull().default(true),
     ...timestamps,
   },
-  (t) => [index("habit_user_id_idx").on(t.userId)],
+  (t) => [index("habit_user_id_idx").on(t.userId), index("habit_parent_id_idx").on(t.parentId)],
 );
 
 export const habitView = pgTable(

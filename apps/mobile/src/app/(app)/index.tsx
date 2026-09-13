@@ -1,17 +1,19 @@
+import { buildDashboardRows, childrenOf } from "@tracker/core";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { HabitCard } from "@/components/HabitCard";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHabits } from "@/hooks/useHabits";
 import { signOut } from "@/lib/auth";
+import { getCollapsedHabitIds, setCollapsedHabitIds } from "@/lib/expanded-habits";
 import { theme } from "@/lib/theme";
 
 export default function Dashboard() {
   const router = useRouter();
   const { user } = useCurrentUser();
   const { habits: allHabits, loading, error, refetch } = useHabits();
-  const habits = allHabits.filter((h) => !h.archivedAt);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   // The dashboard, create/edit/log screens each own an independent fetch —
   // there's no shared cache yet (see useHabits' doc comment) — so refetch
@@ -22,6 +24,24 @@ export default function Dashboard() {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   );
+
+  // Collapsed/expanded state is local-only (AsyncStorage, not synced) —
+  // loaded once on mount, not on every focus.
+  useEffect(() => {
+    getCollapsedHabitIds().then(setCollapsed);
+  }, []);
+
+  function toggleCollapsed(habitId: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(habitId)) next.delete(habitId);
+      else next.add(habitId);
+      setCollapsedHabitIds(next);
+      return next;
+    });
+  }
+
+  const rows = buildDashboardRows(allHabits, collapsed);
 
   async function onSignOut() {
     await signOut();
@@ -42,20 +62,44 @@ export default function Dashboard() {
         </View>
       </View>
 
-      {loading && habits.length === 0 ? (
+      {loading && rows.length === 0 ? (
         <ActivityIndicator style={styles.spinner} />
       ) : error ? (
         <Text style={styles.error}>{error}</Text>
-      ) : habits.length === 0 ? (
+      ) : rows.length === 0 ? (
         <Text style={styles.empty}>No habits yet — tap &ldquo;+ New&rdquo; to add one.</Text>
       ) : (
         <FlatList
-          data={habits}
-          keyExtractor={(h) => h.id}
+          data={rows}
+          keyExtractor={(row) => row.habit.id}
           contentContainerStyle={styles.list}
-          renderItem={({ item }) => (
-            <HabitCard habit={item} timeZone={user?.timeZone ?? "UTC"} onChanged={refetch} />
-          )}
+          renderItem={({ item }) => {
+            const childCount = childrenOf(item.habit.id, allHabits).filter(
+              (h) => !h.archivedAt,
+            ).length;
+            return (
+              <View style={{ paddingLeft: item.depth * 16 }}>
+                <HabitCard
+                  habit={item.habit}
+                  allHabits={allHabits}
+                  timeZone={user?.timeZone ?? "UTC"}
+                  onChanged={refetch}
+                />
+                {childCount > 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => toggleCollapsed(item.habit.id)}
+                    style={styles.expandToggle}
+                  >
+                    <Text style={styles.expandToggleText}>
+                      {collapsed.has(item.habit.id) ? "▸" : "▾"} {childCount}{" "}
+                      {childCount === 1 ? "subhabit" : "subhabits"}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            );
+          }}
         />
       )}
 
@@ -88,6 +132,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   list: { paddingHorizontal: 20, paddingBottom: 20, gap: 12 },
+  expandToggle: { paddingVertical: 8, paddingHorizontal: 4 },
+  expandToggleText: { color: theme.colors.text.muted, fontSize: 13, fontWeight: "600" },
   signOut: { alignItems: "center", paddingVertical: 16 },
   signOutText: { color: theme.colors.text.muted, fontSize: 14 },
 });

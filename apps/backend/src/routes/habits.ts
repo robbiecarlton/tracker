@@ -2,18 +2,22 @@ import { randomUUID } from "node:crypto";
 import type { IncomingHttpHeaders } from "node:http";
 import type { FastifyInstance } from "fastify";
 import {
+  childrenOf,
   createHabitSchema,
   createLogSchema,
   DEFAULT_HABIT_VIEWS,
+  getDescendants,
   habitFormSchema,
   updateLogSchema,
+  wouldCreateCycle,
   type Habit,
   type HabitLog,
+  type HabitNode,
   type HabitStartDateChange,
   type HabitView,
   type HabitViewInput,
 } from "@tracker/core";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { auth } from "../auth";
 import { db } from "../db";
 import { habit, habitLog, habitStartDateChange, habitView } from "../db/schema";
@@ -21,6 +25,13 @@ import { toWebHeaders } from "../http";
 import { parseBody } from "../lib/validate";
 
 type ApiHabit = Habit & { logs: HabitLog[]; startDateHistory: HabitStartDateChange[] };
+
+/** How to resolve a habit's active (non-archived) subhabits when it's deleted or archived. */
+type ChildrenAction = "cascade" | "top_level" | "grandparent";
+
+function isChildrenAction(value: unknown): value is ChildrenAction {
+  return value === "cascade" || value === "top_level" || value === "grandparent";
+}
 
 export async function habitsRoutes(app: FastifyInstance): Promise<void> {
   async function getSessionUserId(request: {
@@ -45,6 +56,11 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
     const parsed = parseBody(request, createHabitSchema);
     if ("error" in parsed) return reply.status(parsed.error.status).send(parsed.error.body);
 
+    const parentId = parsed.data.parentId ?? null;
+    if (parentId !== null && !(await findOwnedHabit(userId, parentId))) {
+      return reply.status(400).send({ error: "invalid_parent" });
+    }
+
     const now = new Date();
     const habitId = randomUUID();
     const viewsInput: readonly HabitViewInput[] =
@@ -57,6 +73,10 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
         name: parsed.data.name,
         startDate: new Date(parsed.data.startDate),
         archivedAt: null,
+        parentId,
+        // A brand-new habit can't have subhabits yet, so there's nothing to
+        // gate this on — always starts loggable directly.
+        allowDirectLogging: true,
         createdAt: now,
         updatedAt: now,
       });
@@ -79,6 +99,24 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
     const parsed = parseBody(request, habitFormSchema);
     if ("error" in parsed) return reply.status(parsed.error.status).send(parsed.error.body);
 
+    if (parsed.data.parentId !== existing.parentId) {
+      if (parsed.data.parentId !== null) {
+        if (!(await findOwnedHabit(userId, parsed.data.parentId))) {
+          return reply.status(400).send({ error: "invalid_parent" });
+        }
+        const nodes = await listHabitNodesForUser(userId);
+        if (wouldCreateCycle(id, parsed.data.parentId, nodes)) {
+          return reply.status(400).send({ error: "invalid_parent" });
+        }
+      }
+    }
+
+    if (parsed.data.allowDirectLogging === false) {
+      const nodes = await listHabitNodesForUser(userId);
+      const hasActiveChild = childrenOf(id, nodes).some((c) => !c.archivedAt);
+      if (!hasActiveChild) return reply.status(400).send({ error: "no_subhabits" });
+    }
+
     const now = new Date();
     const newStartDate = new Date(parsed.data.startDate);
     const startDateChanged = newStartDate.getTime() !== existing.startDate.getTime();
@@ -89,6 +127,8 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
         .set({
           name: parsed.data.name,
           startDate: newStartDate,
+          parentId: parsed.data.parentId,
+          allowDirectLogging: parsed.data.allowDirectLogging,
           updatedAt: now,
         })
         .where(eq(habit.id, id));
@@ -125,11 +165,59 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
     if (!userId) return reply.status(401).send({ error: "unauthenticated" });
 
     const { id } = request.params as { id: string };
-    const deleted = await db
-      .delete(habit)
-      .where(and(eq(habit.id, id), eq(habit.userId, userId)))
-      .returning();
-    if (deleted.length === 0) return reply.status(404).send({ error: "not_found" });
+    const owned = await findOwnedHabit(userId, id);
+    if (!owned) return reply.status(404).send({ error: "not_found" });
+
+    const nodes = await listHabitNodesForUser(userId);
+    const allDescendants = getDescendants(id, nodes);
+    const activeDescendants = allDescendants.filter((d) => !d.habit.archivedAt);
+
+    if (activeDescendants.length === 0) {
+      // Nothing active to ask the user about. If every descendant here is
+      // already archived (rare), silently promote its direct children to
+      // top-level rather than cascading — non-destructive, and avoids the
+      // self-FK's ON DELETE RESTRICT tripping on a still-referencing row.
+      await db.transaction(async (tx) => {
+        if (allDescendants.length > 0) {
+          await tx
+            .update(habit)
+            .set({ parentId: null, updatedAt: new Date() })
+            .where(and(eq(habit.parentId, id), eq(habit.userId, userId)));
+        }
+        await tx.delete(habit).where(and(eq(habit.id, id), eq(habit.userId, userId)));
+      });
+      return reply.status(204).send();
+    }
+
+    const action = (request.query as { childrenAction?: string }).childrenAction;
+    if (!isChildrenAction(action)) {
+      return reply.status(400).send({ error: "children_action_required" });
+    }
+    if (action === "grandparent" && owned.parentId === null) {
+      return reply.status(400).send({ error: "invalid_children_action" });
+    }
+
+    await db.transaction(async (tx) => {
+      if (action === "cascade") {
+        // The whole subtree, active or already-archived — "delete
+        // everything" means everything below it, not just the active part.
+        const ids = [id, ...allDescendants.map((d) => d.habit.id)];
+        await tx.delete(habit).where(inArray(habit.id, ids));
+        return;
+      }
+
+      // top_level / grandparent: reparent every DIRECT child (active or
+      // archived — an archived one still references `id` via the FK, so it
+      // has to move too, even though only active ones drove this prompt).
+      // Grandchildren and below are untouched: only their immediate
+      // parent's identity changes.
+      const newParentId = action === "grandparent" ? owned.parentId : null;
+      await tx
+        .update(habit)
+        .set({ parentId: newParentId, updatedAt: new Date() })
+        .where(and(eq(habit.parentId, id), eq(habit.userId, userId)));
+      await tx.delete(habit).where(and(eq(habit.id, id), eq(habit.userId, userId)));
+    });
 
     return reply.status(204).send();
   });
@@ -141,6 +229,9 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
     const { id } = request.params as { id: string };
     const owned = await findOwnedHabit(userId, id);
     if (!owned) return reply.status(404).send({ error: "not_found" });
+    if (!owned.allowDirectLogging) {
+      return reply.status(400).send({ error: "direct_logging_disabled" });
+    }
 
     const parsed = parseBody(request, createLogSchema);
     if ("error" in parsed) return reply.status(parsed.error.status).send(parsed.error.body);
@@ -215,8 +306,44 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
     const owned = await findOwnedHabit(userId, id);
     if (!owned) return reply.status(404).send({ error: "not_found" });
 
+    const nodes = await listHabitNodesForUser(userId);
+    const activeDescendants = getDescendants(id, nodes).filter((d) => !d.habit.archivedAt);
+
     const now = new Date();
-    await db.update(habit).set({ archivedAt: now, updatedAt: now }).where(eq(habit.id, id));
+    if (activeDescendants.length === 0) {
+      // Nothing active depends on `id` staying put — unlike delete, `id`
+      // keeps existing here, so any already-archived descendants can just
+      // stay pointed at it with no FK concern at all.
+      await db.update(habit).set({ archivedAt: now, updatedAt: now }).where(eq(habit.id, id));
+      const [updated] = await listHabitsForUser(userId, id);
+      return { habit: updated };
+    }
+
+    const action = (request.query as { childrenAction?: string }).childrenAction;
+    if (!isChildrenAction(action)) {
+      return reply.status(400).send({ error: "children_action_required" });
+    }
+    if (action === "grandparent" && owned.parentId === null) {
+      return reply.status(400).send({ error: "invalid_children_action" });
+    }
+
+    await db.transaction(async (tx) => {
+      if (action === "cascade") {
+        const ids = [id, ...activeDescendants.map((d) => d.habit.id)];
+        await tx.update(habit).set({ archivedAt: now, updatedAt: now }).where(inArray(habit.id, ids));
+        return;
+      }
+
+      // top_level / grandparent: only the currently-active direct children
+      // need moving — an already-archived direct child can safely keep
+      // pointing at `id`, since `id` isn't going anywhere.
+      const newParentId = action === "grandparent" ? owned.parentId : null;
+      await tx
+        .update(habit)
+        .set({ parentId: newParentId, updatedAt: now })
+        .where(and(eq(habit.parentId, id), eq(habit.userId, userId), isNull(habit.archivedAt)));
+      await tx.update(habit).set({ archivedAt: now, updatedAt: now }).where(eq(habit.id, id));
+    });
 
     const [updated] = await listHabitsForUser(userId, id);
     return { habit: updated };
@@ -245,8 +372,24 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
     const owned = await findOwnedHabit(userId, id);
     if (!owned) return reply.status(404).send({ error: "not_found" });
 
+    // The old habit is archived under its *own* id here, so its children
+    // (if any) would be left pointing at a now-archived habit rather than
+    // the freshly-cloned one that replaces it — not supported yet (see
+    // docs/DOMAIN.md's "Nested habits"). Require the caller to resolve them
+    // first via the plain archive/delete actions' childrenAction choices.
+    const nodes = await listHabitNodesForUser(userId);
+    const hasActiveChildren = childrenOf(id, nodes).some((c) => !c.archivedAt);
+    if (hasActiveChildren) {
+      return reply.status(400).send({ error: "has_active_subhabits" });
+    }
+
     const parsed = parseBody(request, habitFormSchema);
     if ("error" in parsed) return reply.status(parsed.error.status).send(parsed.error.body);
+
+    const newParentId = parsed.data.parentId;
+    if (newParentId !== null && !(await findOwnedHabit(userId, newParentId))) {
+      return reply.status(400).send({ error: "invalid_parent" });
+    }
 
     const now = new Date();
     const newHabitId = randomUUID();
@@ -263,6 +406,8 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
         name: parsed.data.name,
         startDate: new Date(parsed.data.startDate),
         archivedAt: null,
+        parentId: newParentId,
+        allowDirectLogging: parsed.data.allowDirectLogging,
         createdAt: now,
         updatedAt: now,
       });
@@ -287,6 +432,24 @@ async function findOwnedHabit(
     .from(habit)
     .where(and(eq(habit.id, habitId), eq(habit.userId, userId)));
   return rows[0] ?? null;
+}
+
+/**
+ * Lightweight `{id, parentId, archivedAt}` projection of every habit a user
+ * owns — everything `@tracker/core`'s `habit-tree.ts` helpers need for cycle
+ * checks and descendant walks, without pulling every column for every habit
+ * on every write.
+ */
+async function listHabitNodesForUser(userId: string): Promise<HabitNode[]> {
+  const rows = await db
+    .select({ id: habit.id, parentId: habit.parentId, archivedAt: habit.archivedAt })
+    .from(habit)
+    .where(eq(habit.userId, userId));
+  return rows.map((r) => ({
+    id: r.id,
+    parentId: r.parentId,
+    archivedAt: r.archivedAt ? r.archivedAt.toISOString() : null,
+  }));
 }
 
 /** Fetches a log row scoped to its (already-ownership-verified) habit. */
@@ -369,6 +532,8 @@ function toHabit(
     startDate: row.startDate.toISOString(),
     views: (viewsByHabit.get(row.id) ?? []).map(toHabitView),
     archivedAt: row.archivedAt ? row.archivedAt.toISOString() : null,
+    parentId: row.parentId,
+    allowDirectLogging: row.allowDirectLogging,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     logs: (logsByHabit.get(row.id) ?? []).map(toHabitLog),

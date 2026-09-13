@@ -24,10 +24,19 @@ export interface HabitJson {
   name: string;
   startDate: string;
   archivedAt: string | null;
+  parentId: string | null;
+  allowDirectLogging: boolean;
   createdAt: string;
   updatedAt: string;
   views: { id: string; kind: string; unit?: string; target?: number; targetType?: string }[];
-  logs: { id: string; notes: string | null; timestamp: string }[];
+  logs: {
+    id: string;
+    habitId: string;
+    notes: string | null;
+    timestamp: string;
+    createdAt: string;
+    updatedAt: string;
+  }[];
   startDateHistory: {
     id: string;
     previousStartDate: string;
@@ -116,6 +125,8 @@ describe("habits API", () => {
         name: "Meditate Daily",
         startDate: "2026-01-01",
         views: [{ kind: "cumulative" }, { kind: "streak", unit: "day" }],
+        parentId: null,
+        allowDirectLogging: true,
       }),
     });
     expect(update.statusCode).toBe(200);
@@ -345,6 +356,8 @@ describe("habits API", () => {
         name: "Meditate",
         startDate: "2026-08-12",
         views: [{ kind: "cumulative" }],
+        parentId: null,
+        allowDirectLogging: true,
       }),
     });
 

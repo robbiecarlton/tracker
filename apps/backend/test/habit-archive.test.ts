@@ -132,6 +132,8 @@ describe("archive-and-clone", () => {
         name: "Meditate",
         startDate: "2026-02-01",
         views: [{ kind: "cumulative" }, { kind: "streak", unit: "day" }],
+        parentId: null,
+        allowDirectLogging: true,
       }),
     });
     expect(clone.statusCode).toBe(201);
@@ -217,6 +219,8 @@ describe("start-date history", () => {
         name: "Meditate Daily",
         startDate: "2026-01-01",
         views: [{ kind: "cumulative" }],
+        parentId: null,
+        allowDirectLogging: true,
       }),
     });
     let list = await app.inject({ method: "GET", url: "/api/habits", headers: { cookie } });
@@ -232,6 +236,8 @@ describe("start-date history", () => {
         name: "Meditate Daily",
         startDate: "2026-01-10",
         views: [{ kind: "cumulative" }],
+        parentId: null,
+        allowDirectLogging: true,
       }),
     });
     list = await app.inject({ method: "GET", url: "/api/habits", headers: { cookie } });
@@ -249,6 +255,8 @@ describe("start-date history", () => {
         name: "Meditate Daily",
         startDate: "2026-01-20",
         views: [{ kind: "cumulative" }],
+        parentId: null,
+        allowDirectLogging: true,
       }),
     });
     list = await app.inject({ method: "GET", url: "/api/habits", headers: { cookie } });

@@ -43,6 +43,17 @@ export interface Habit {
   startDate: string;
   views: HabitView[];
   archivedAt: string | null;
+  /**
+   * Nested habits (subhabits) — see `docs/DOMAIN.md`'s "Nested habits" and
+   * `habit-tree.ts`. `null` means top-level. Logging a habit also counts
+   * toward every ancestor's view calculations, transitively.
+   */
+  parentId: string | null;
+  /**
+   * When `false`, this habit can only be logged via a subhabit — only
+   * meaningful (and only settable) once it has ≥1 non-archived subhabit.
+   */
+  allowDirectLogging: boolean;
   createdAt: string;
   updatedAt: string;
 }
