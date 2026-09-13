@@ -34,6 +34,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ChipRow` (the pill-style option selector) is lifted out of `HabitForm.tsx`
   into its own `components/ChipRow.tsx` so the log-list filter and the
   direct-logging toggle can reuse it.
+- Each `HabitCard` gains a "+ Subhabit" link below Edit, opening the create
+  form with this habit preselected as the parent (`/habits/new?parentId=`).
+
+### Fixed
+
+- `Screen` (`components/ui.tsx`, backing the sign-in/sign-up, habit
+  create/edit, and single-log forms) was a plain `View` with
+  `justifyContent: "center"` and no scroll container — fine while content
+  was always shorter than the viewport, but once a form grows past it (the
+  habit edit form, now with a parent picker and toggle) there was nothing
+  to scroll: content just clipped, vertically centered and stuck. Now a
+  `ScrollView`, top-aligned, that scrolls normally when content overflows.
 
 ## [0.3.3] - 2026-09-12
 

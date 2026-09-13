@@ -1,5 +1,5 @@
 import { DEFAULT_HABIT_VIEWS } from "@tracker/core";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback } from "react";
 import { createHabit } from "@/api/habits";
 import { HabitForm, rowFromView } from "@/components/HabitForm";
@@ -10,6 +10,8 @@ export default function NewHabit() {
   const router = useRouter();
   const { user } = useCurrentUser();
   const { habits, refetch } = useHabits();
+  // Set when reached via a parent habit's "+ Subhabit" link (HabitCard).
+  const { parentId } = useLocalSearchParams<{ parentId?: string }>();
 
   // Needed for the parent-habit picker — see HabitForm's `habits` prop.
   useFocusEffect(
@@ -22,6 +24,7 @@ export default function NewHabit() {
   return (
     <HabitForm
       habits={habits}
+      initialParentId={parentId ?? null}
       initialViews={DEFAULT_HABIT_VIEWS.map(rowFromView)}
       submitLabel="Create"
       timeZone={user?.timeZone ?? "UTC"}

@@ -73,13 +73,22 @@ export function HabitCard({
     <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.name}>{habit.name}</Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push({ pathname: "/habits/[id]/edit", params: { id: habit.id } })}
-          hitSlop={8}
-        >
-          <Text style={styles.editLink}>Edit</Text>
-        </Pressable>
+        <View style={styles.headerLinks}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: "/habits/[id]/edit", params: { id: habit.id } })}
+            hitSlop={8}
+          >
+            <Text style={styles.editLink}>Edit</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: "/habits/new", params: { parentId: habit.id } })}
+            hitSlop={8}
+          >
+            <Text style={styles.addSubhabitLink}>+ Subhabit</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.tiles}>
@@ -142,9 +151,11 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 12,
   },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  headerLinks: { alignItems: "flex-end", gap: 4 },
   name: { fontSize: 17, fontWeight: "700", color: theme.colors.text.primary },
   editLink: { color: theme.colors.brand, fontWeight: "600", fontSize: 14 },
+  addSubhabitLink: { color: theme.colors.text.muted, fontSize: 13 },
   tiles: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   actions: { flexDirection: "row", alignItems: "center", gap: 16 },
   logButton: {
