@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -10,8 +11,20 @@ import {
 } from "react-native";
 import { theme } from "@/lib/theme";
 
+/**
+ * A plain `View` with `justifyContent: "center"` looked fine while every
+ * form fit on screen, but once content grows past the viewport (e.g. the
+ * habit edit form once nested-habits added a picker + toggle), there was no
+ * `ScrollView` to scroll — the excess just clipped, vertically centered and
+ * stuck. `ScrollView` gives normal page behavior instead: top-aligned,
+ * scrolls when content overflows, unchanged when it doesn't.
+ */
 export function Screen({ children }: { children: ReactNode }) {
-  return <View style={styles.screen}>{children}</View>;
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
+      {children}
+    </ScrollView>
+  );
 }
 
 export function Title({ children }: { children: ReactNode }) {
@@ -84,10 +97,11 @@ export function FormError({ message }: { message?: string }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    padding: 24,
-    justifyContent: "center",
-    gap: 16,
     backgroundColor: theme.colors.background,
+  },
+  screenContent: {
+    padding: 24,
+    gap: 16,
   },
   title: { fontSize: 28, fontWeight: "700", marginBottom: 8, color: theme.colors.text.primary },
   backButton: { alignSelf: "flex-start", paddingVertical: 4, marginBottom: 4 },
