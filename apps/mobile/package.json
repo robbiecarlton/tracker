@@ -1,22 +1,22 @@
 {
   "name": "@tracker/mobile",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
     "dev": "expo start",
-    "start": "expo start",
+    "start": "serve -s dist -l $PORT",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build": "expo export --platform web --output-dir dist",
-    "start": "serve -s dist -l $PORT",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint ."
   },
   "dependencies": {
     "@better-auth/expo": "1.7.4",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@tracker/core": "*",
     "better-auth": "1.7.4",
     "expo": "~57.0.21",

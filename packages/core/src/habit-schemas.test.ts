@@ -53,6 +53,8 @@ describe("habitFormSchema", () => {
       name: "Meditate",
       startDate: "2026-01-01",
       views: [{ kind: "cumulative" }],
+      parentId: null,
+      allowDirectLogging: true,
     });
     expect(result.success).toBe(true);
   });
@@ -63,6 +65,8 @@ describe("habitFormSchema", () => {
         name: "",
         startDate: "2026-01-01",
         views: [{ kind: "cumulative" }],
+        parentId: null,
+        allowDirectLogging: true,
       }).success,
     ).toBe(false);
   });
@@ -73,6 +77,8 @@ describe("habitFormSchema", () => {
         name: "Meditate",
         startDate: "not-a-date",
         views: [{ kind: "cumulative" }],
+        parentId: null,
+        allowDirectLogging: true,
       }).success,
     ).toBe(false);
   });
@@ -85,6 +91,8 @@ describe("habitFormSchema", () => {
       name: "Meditate",
       startDate: "2026-08-11 00:00:00-07",
       views: [{ kind: "cumulative" }],
+      parentId: null,
+      allowDirectLogging: true,
     });
     expect(result.success).toBe(false);
   });
@@ -94,6 +102,8 @@ describe("habitFormSchema", () => {
       name: "Meditate",
       startDate: "2026-13-45",
       views: [{ kind: "cumulative" }],
+      parentId: null,
+      allowDirectLogging: true,
     });
     expect(result.success).toBe(false);
   });
@@ -103,13 +113,31 @@ describe("habitFormSchema", () => {
       name: "Meditate",
       startDate: "2026-01-01",
       views: [{ kind: "cumulative" }],
+      parentId: null,
+      allowDirectLogging: true,
     });
     expect(result.success).toBe(true);
   });
 
   it("requires at least one view", () => {
     expect(
-      habitFormSchema.safeParse({ name: "Meditate", startDate: "2026-01-01", views: [] }).success,
+      habitFormSchema.safeParse({
+        name: "Meditate",
+        startDate: "2026-01-01",
+        views: [],
+        parentId: null,
+        allowDirectLogging: true,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires parentId and allowDirectLogging (full-replace-on-edit, like every other field)", () => {
+    expect(
+      habitFormSchema.safeParse({
+        name: "Meditate",
+        startDate: "2026-01-01",
+        views: [{ kind: "cumulative" }],
+      }).success,
     ).toBe(false);
   });
 });

@@ -72,16 +72,33 @@ export const habitFormSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Enter the date as YYYY-MM-DD")
     .refine((s) => DateTime.fromISO(s).isValid, { message: "Enter a valid date" }),
   views: z.array(habitViewInputSchema).min(1, "Add at least one view"),
+  /**
+   * Nested habits — full-replace-on-edit like every other field here, so the
+   * edit form always sends the habit's current parent (or `null`) even when
+   * unchanged. Whether a given value is actually a legal parent (owned,
+   * not a cycle) can't be checked by this single-object schema — that's the
+   * route handler's job, using `@tracker/core`'s `wouldCreateCycle`.
+   */
+  parentId: z.string().nullable(),
+  /**
+   * Only settable to `false` when the habit already has ≥1 non-archived
+   * subhabit — also route-handler-enforced, same reason as above.
+   */
+  allowDirectLogging: z.boolean(),
 });
 
 /**
- * Same as `habitFormSchema`, except `views` may be omitted/empty — the
- * create endpoint applies `DEFAULT_HABIT_VIEWS` in that case. The edit form
- * (`habitFormSchema`) always requires at least one view, since a habit
- * always has 1+ views once it exists.
+ * Same as `habitFormSchema`, except `views` may be omitted/empty (the create
+ * endpoint applies `DEFAULT_HABIT_VIEWS` in that case), `parentId` defaults
+ * to top-level, and `allowDirectLogging` defaults to `true` — a brand-new
+ * habit can't have subhabits yet, so there's nothing to default away from.
+ * The edit form (`habitFormSchema`) always requires all of these explicitly,
+ * since an existing habit always has real values for them.
  */
 export const createHabitSchema = habitFormSchema.extend({
   views: z.array(habitViewInputSchema).optional(),
+  parentId: z.string().nullable().optional(),
+  allowDirectLogging: z.boolean().optional(),
 });
 
 export const createLogSchema = z.object({

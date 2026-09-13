@@ -21,6 +21,8 @@ function habit(overrides: Partial<Habit> = {}): Habit {
     startDate: "2026-01-01T00:00:00Z",
     views: [],
     archivedAt: null,
+    parentId: null,
+    allowDirectLogging: true,
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-01T00:00:00Z",
     ...overrides,

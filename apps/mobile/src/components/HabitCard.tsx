@@ -1,6 +1,8 @@
 import {
+  aggregatedLogs,
   computeHabitView,
   computeHighlight,
+  type HabitLog,
   type HabitView,
   type TimeContext,
 } from "@tracker/core";
@@ -23,10 +25,11 @@ import { ViewTile } from "./ViewTile";
 function safeComputeTile(
   habit: ApiHabit,
   view: HabitView,
+  logs: readonly HabitLog[],
   ctx: TimeContext,
 ): { value: string; highlightColor: string | null } {
   try {
-    const result = computeHabitView(habit, view, habit.logs, ctx);
+    const result = computeHabitView(habit, view, logs, ctx);
     return {
       value: formatViewValue(result),
       highlightColor: computeHighlight(view, highlightValueForView(result)),
@@ -38,16 +41,21 @@ function safeComputeTile(
 
 export function HabitCard({
   habit,
+  allHabits,
   timeZone,
   onChanged,
 }: {
   habit: ApiHabit;
+  /** The user's full habit list — needed so a habit with subhabits rolls up
+   * their logs into its own view calculations (see `aggregatedLogs`). */
+  allHabits: ApiHabit[];
   timeZone: string;
   onChanged: () => void | Promise<void>;
 }) {
   const router = useRouter();
   const [logging, setLogging] = useState(false);
   const ctx: TimeContext = { now: new Date().toISOString(), timeZone };
+  const logs = aggregatedLogs(habit.id, allHabits);
 
   async function onLog() {
     setLogging(true);
@@ -65,18 +73,27 @@ export function HabitCard({
     <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.name}>{habit.name}</Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push({ pathname: "/habits/[id]/edit", params: { id: habit.id } })}
-          hitSlop={8}
-        >
-          <Text style={styles.editLink}>Edit</Text>
-        </Pressable>
+        <View style={styles.headerLinks}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: "/habits/[id]/edit", params: { id: habit.id } })}
+            hitSlop={8}
+          >
+            <Text style={styles.editLink}>Edit</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: "/habits/new", params: { parentId: habit.id } })}
+            hitSlop={8}
+          >
+            <Text style={styles.addSubhabitLink}>+ Subhabit</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.tiles}>
         {habit.views.map((view) => {
-          const tile = safeComputeTile(habit, view, ctx);
+          const tile = safeComputeTile(habit, view, logs, ctx);
           return (
             <ViewTile
               key={view.id}
@@ -89,26 +106,30 @@ export function HabitCard({
       </View>
 
       <View style={styles.actions}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={onLog}
-          disabled={logging}
-          style={({ pressed }) => [
-            styles.logButton,
-            pressed && styles.logButtonPressed,
-            logging && styles.logButtonDisabled,
-          ]}
-        >
-          <Text style={styles.logButtonText}>{logging ? "Logging…" : "Log"}</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push({ pathname: "/habits/[id]/logs/new", params: { id: habit.id } })}
-          hitSlop={8}
-          style={styles.notesLink}
-        >
-          <Text style={styles.notesLinkText}>+ note</Text>
-        </Pressable>
+        {habit.allowDirectLogging ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={onLog}
+            disabled={logging}
+            style={({ pressed }) => [
+              styles.logButton,
+              pressed && styles.logButtonPressed,
+              logging && styles.logButtonDisabled,
+            ]}
+          >
+            <Text style={styles.logButtonText}>{logging ? "Logging…" : "Log"}</Text>
+          </Pressable>
+        ) : null}
+        {habit.allowDirectLogging ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: "/habits/[id]/logs/new", params: { id: habit.id } })}
+            hitSlop={8}
+            style={styles.notesLink}
+          >
+            <Text style={styles.notesLinkText}>+ note</Text>
+          </Pressable>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           onPress={() => router.push({ pathname: "/habits/[id]/logs", params: { id: habit.id } })}
@@ -130,9 +151,11 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 12,
   },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  headerLinks: { alignItems: "flex-end", gap: 4 },
   name: { fontSize: 17, fontWeight: "700", color: theme.colors.text.primary },
   editLink: { color: theme.colors.brand, fontWeight: "600", fontSize: 14 },
+  addSubhabitLink: { color: theme.colors.text.muted, fontSize: 13 },
   tiles: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   actions: { flexDirection: "row", alignItems: "center", gap: 16 },
   logButton: {

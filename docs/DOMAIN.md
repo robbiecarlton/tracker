@@ -9,8 +9,9 @@ that use it landed in Phase 3 — see `apps/backend/src/routes/habits.ts` and
 management, start-date archive/keep-with-history, and the archived-habits
 area (below) landed in Phase 4 — see `apps/backend/src/db/schema.ts`'s
 `habit_start_date_change` table and `apps/mobile/src/app/(app)/habits/`'s
-`logs/` and `archived.tsx` screens. Source of the requirements:
-`INITIALSPEC.md`.
+`logs/` and `archived.tsx` screens. Nested habits (below) landed after
+Phase 4 — see `packages/core/src/habit-tree.ts`. Source of the
+requirements: `INITIALSPEC.md`.
 
 ## Entities
 
@@ -23,6 +24,8 @@ area (below) landed in Phase 4 — see `apps/backend/src/db/schema.ts`'s
 | `views`         | One or more (see below). Switchable any time; multiple active.                                 |
 | per-view config | streak unit; cumulation goal; percentage unit/target/target-type; days unit/target/target-type |
 | `archivedAt`    | Archived habits leave the dashboard but keep their config.                                     |
+| `parentId`      | Nested habits (below). `null` = top-level.                                                     |
+| `allowDirectLogging` | Nested habits (below). Defaults `true`.                                                   |
 | logs            | Zero or more.                                                                                  |
 
 ### Log
@@ -79,6 +82,45 @@ If the start date moves and logs exist before the new date, prompt the user:
 - **Keep** it — the log view then shows every past start date inline with the
   logs, and any log older than the current start date is visually marked as an
   "archive log".
+
+## Nested habits
+
+A habit can have subhabits, arbitrarily deep (e.g. a "Bad habits" parent
+habit with "Smoking"/"Drinking" subhabits, or "Exercise" with "Run"/"Lift").
+Each habit has at most one parent habit (`parentId`, `null` = top-level);
+reparenting to a habit's own descendant is rejected (would create a cycle).
+
+- **Logging rolls up transitively.** Logging a subhabit counts as a log for
+  every ancestor's view calculations too — an ancestor's views run over its
+  own logs plus every non-archived descendant's (`@tracker/core`'s
+  `aggregatedLogs`). Archiving a habit stops *its* logs (and its own
+  descendants', recursively) from counting toward anything above it — the
+  same "archived leaves the active view" rule as a top-level habit, applied
+  to the whole subtree at once.
+- **Direct logging can be disabled** (`allowDirectLogging`) once a habit has
+  ≥1 non-archived subhabit — logging is then only possible via a child.
+  Can't be turned off with zero subhabits (there'd be no way to log it at
+  all), and reverts to meaningless-but-harmless if its last subhabit is
+  later archived/moved away (the flag itself isn't auto-reset — the habit
+  just can't be logged until either a new subhabit exists or the flag is
+  turned back on).
+- **Deleting or archiving a habit with active (non-archived) subhabits**
+  prompts how to resolve its **direct** children (grandchildren and below
+  always stay exactly where they are — only their immediate parent's
+  identity ever changes):
+  - Apply the same action to the whole subtree too (delete/archive
+    everything below it), or
+  - **Promote** them to top-level, or
+  - **Rehome** them under this habit's own parent habit (only offered when
+    this habit itself has one — otherwise identical to promoting).
+- **Dashboard**: nothing is hidden by default — a parent habit renders
+  normally, followed by an expand/collapse control (default expanded) and
+  its visible subhabits indented directly beneath, each its own bordered
+  card, with an "Add subhabit" link to create one already parented here.
+  Collapse state is local-only (not synced across devices).
+- **Log list**: defaults to showing a habit's own logs plus every
+  descendant's (labeled with its source habit), with a filter to narrow to
+  just this habit's own.
 
 ## Offline (Phase 5)
 

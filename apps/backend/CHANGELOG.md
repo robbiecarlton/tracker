@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-12
+
+### Added
+
+- Nested habits: `habit` gains a self-referential `parent_id` (migration
+  `0004_add_habit_nesting`, `ON DELETE RESTRICT` — app code always resolves
+  a habit's children before removing it) and `allow_direct_logging`.
+  `POST`/`PATCH /api/habits` validate `parentId` (must be an owned habit,
+  no cycles) and `allowDirectLogging` (can only be `false` once the habit
+  has ≥1 non-archived subhabit). `POST /api/habits/:id/logs` rejects a
+  direct log with `direct_logging_disabled` once that's set.
+- `DELETE /api/habits/:id` and `POST /api/habits/:id/archive` now handle a
+  habit's active (non-archived) subhabits: with none, they behave as
+  before; with some, they require `?childrenAction=cascade|top_level|
+  grandparent` — apply the same action to the whole subtree, promote direct
+  children to top-level, or (delete only, when the habit itself has a
+  parent) rehome them under it. Grandchildren and below are never touched —
+  only their immediate parent's identity changes.
+- `POST /api/habits/:id/archive-and-clone` now rejects (`has_active_subhabits`)
+  when the habit has any non-archived children — the clone gets a fresh id,
+  so re-parenting them onto it isn't handled yet; resolve subhabits via the
+  plain archive/delete actions first.
+
 ## [0.3.1] - 2026-09-12
 
 ### Fixed

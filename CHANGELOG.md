@@ -9,6 +9,31 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-09-12 — Nested habits
+
+A habit can now have subhabits, arbitrarily nested (e.g. "Bad habits" →
+"Smoking"/"Drinking", or "Exercise" → "Run"/"Lift"). Logging a subhabit
+counts toward every ancestor's view calculations; a parent can optionally
+disable being logged directly, requiring all logging to go through its
+children. See `docs/DOMAIN.md`'s "Nested habits".
+
+### Added
+
+- **`@tracker/core` 0.6.0**: `Habit.parentId`/`allowDirectLogging`, and a new
+  `habit-tree.ts` module (`childrenOf`, `getDescendants`, `wouldCreateCycle`,
+  `aggregatedLogs`, `buildDashboardRows`) shared by the backend and mobile.
+- **`@tracker/backend` 0.4.0**: `habit.parent_id`/`allow_direct_logging`
+  (migration `0004`), parent/cycle/subhabit-count validation on
+  create/patch, `direct_logging_disabled` on a gated log attempt, and a
+  `childrenAction` (`cascade`/`top_level`/`grandparent`) query param on
+  delete and archive for habits with active subhabits.
+- **`@tracker/mobile` 0.4.0**: a parent-habit picker and direct-logging
+  toggle on the create/edit form; the dashboard renders subhabits indented
+  under their parent with a persisted (local-only) expand/collapse control;
+  a new direct **Archive** action alongside Delete, both prompting how to
+  resolve active subhabits; the per-habit log list gains an "All logs" /
+  "This habit only" filter with source-habit badges on rolled-up logs.
+
 ## 2026-09-12 — Railway deployment
 
 Added `docs/RAILWAY.md`, a full runbook for deploying the backend + web

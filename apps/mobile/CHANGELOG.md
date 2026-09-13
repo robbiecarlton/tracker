@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-12
+
+### Added
+
+- Nested habits: a habit can have a parent habit (arbitrarily deep) via a
+  new picker (`HabitPickerModal`) on the create/edit form, plus a
+  direct-logging on/off toggle that only appears once a habit has a
+  subhabit. The dashboard renders subhabits indented directly under their
+  parent with a `▾`/`▸` expand/collapse control per parent — collapsed
+  state persists locally (`@react-native-async-storage/async-storage`,
+  `src/lib/expanded-habits.ts`), not synced across devices. A habit's view
+  tiles now roll up its non-archived subhabits' logs
+  (`@tracker/core`'s `aggregatedLogs`), and its Log/`+note` actions
+  disappear once direct logging is disabled.
+- The edit form gains a direct **Archive** action (the `archiveHabit` API
+  existed but nothing called it before — only `archive-and-clone` and
+  `unarchive` were wired up). Deleting or archiving a habit with active
+  subhabits now prompts to cascade the action to the whole subtree, promote
+  direct children to top-level, or rehome them under the habit's own
+  parent — `edit.tsx`'s `confirmChildrenAction`.
+- The per-habit log list gains an "All logs" / "This habit only" filter
+  (defaulting to all), each rolled-up log labeled with its source habit
+  ("From: Smoking"), and Edit/Delete on such a log now correctly targets
+  that log's own habit rather than the page's.
+- `ChipRow` (the pill-style option selector) is lifted out of `HabitForm.tsx`
+  into its own `components/ChipRow.tsx` so the log-list filter and the
+  direct-logging toggle can reuse it.
+- Each `HabitCard` gains a "+ Subhabit" link below Edit, opening the create
+  form with this habit preselected as the parent (`/habits/new?parentId=`).
+
+### Fixed
+
+- `Screen` (`components/ui.tsx`, backing the sign-in/sign-up, habit
+  create/edit, and single-log forms) was a plain `View` with
+  `justifyContent: "center"` and no scroll container — fine while content
+  was always shorter than the viewport, but once a form grows past it (the
+  habit edit form, now with a parent picker and toggle) there was nothing
+  to scroll: content just clipped, vertically centered and stuck. Now a
+  `ScrollView`, top-aligned, that scrolls normally when content overflows.
+
 ## [0.3.3] - 2026-09-12
 
 ### Added

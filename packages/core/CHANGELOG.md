@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-12
+
+### Added
+
+- Nested habits (subhabits): `Habit` gains `parentId` (self-referential,
+  `null` = top-level) and `allowDirectLogging`. New `habit-tree.ts` module
+  with pure tree helpers shared by the backend and mobile app: `childrenOf`,
+  `getDescendants` (depth-tagged, arbitrarily deep), `wouldCreateCycle`,
+  `aggregatedLogs` (a habit's own logs plus every non-archived descendant's,
+  for view calculations to roll up through — an archived habit's whole
+  subtree detaches from the rollup), and `buildDashboardRows` (depth-first,
+  collapse-aware flattening for the dashboard). `habitFormSchema` and
+  `createHabitSchema` gain matching `parentId`/`allowDirectLogging` fields.
+  See `docs/DOMAIN.md`'s "Nested habits".
+
 ## [0.5.0] - 2026-09-12
 
 ### Added
