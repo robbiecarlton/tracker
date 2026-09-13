@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-12
+
+### Added
+
+- A small, unobtrusive `v<version>` label pinned to the top-right corner of
+  every screen, auth pages included (`VersionBadge`, rendered once in the
+  root layout). Reads `@tracker/mobile`'s own `package.json` version at
+  build time — bump that (as this commit does) and it's what shows.
+
 ## [0.4.0] - 2026-09-12
 
 ### Added

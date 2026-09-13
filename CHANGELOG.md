@@ -9,6 +9,14 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-09-12 — Version badge
+
+### Added
+
+- **`@tracker/mobile` 0.5.0**: a small `v<version>` label pinned top-right
+  on every screen, auth pages included — reads the app's own
+  `package.json` version at build time.
+
 ## 2026-09-12 — Nested habits
 
 A habit can now have subhabits, arbitrarily nested (e.g. "Bad habits" →
