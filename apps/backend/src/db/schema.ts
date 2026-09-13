@@ -16,11 +16,12 @@ import {
  * `habit_start_date_change`, added in Phase 4).
  *
  * This mirrors `drizzle/0001_init.up.sql`, `drizzle/0002_add_habits.up.sql`,
- * `drizzle/0003_add_start_date_history.up.sql`, and
- * `drizzle/0004_add_habit_nesting.up.sql`, which are the source of truth for
- * the DDL (we run plain-SQL migrations). Keep the SQL and this file in sync
- * when the schema changes: `npm run db:generate -- <name>` scaffolds the
- * migration files.
+ * `drizzle/0003_add_start_date_history.up.sql`,
+ * `drizzle/0004_add_habit_nesting.up.sql`, and
+ * `drizzle/0005_add_habit_sort_order.up.sql`, which are the source of truth
+ * for the DDL (we run plain-SQL migrations). Keep the SQL and this file in
+ * sync when the schema changes: `npm run db:generate -- <name>` scaffolds
+ * the migration files.
  */
 
 const timestamps = {
@@ -110,6 +111,13 @@ export const habit = pgTable(
     }),
     /** Only meaningful when this habit has ≥1 subhabit — see `habit-tree.ts`. */
     allowDirectLogging: boolean("allow_direct_logging").notNull().default(true),
+    /**
+     * Explicit drag-to-reorder position, relative to other habits sharing
+     * the same `parentId` — cross-group values are meaningless, only
+     * within-group relative order matters. Set on create/reparent (appended
+     * to the end of the new sibling group) and by `PATCH /api/habits/reorder`.
+     */
+    sortOrder: integer("sort_order").notNull().default(0),
     ...timestamps,
   },
   (t) => [index("habit_user_id_idx").on(t.userId), index("habit_parent_id_idx").on(t.parentId)],

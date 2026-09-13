@@ -9,9 +9,10 @@ that use it landed in Phase 3 — see `apps/backend/src/routes/habits.ts` and
 management, start-date archive/keep-with-history, and the archived-habits
 area (below) landed in Phase 4 — see `apps/backend/src/db/schema.ts`'s
 `habit_start_date_change` table and `apps/mobile/src/app/(app)/habits/`'s
-`logs/` and `archived.tsx` screens. Nested habits (below) landed after
-Phase 4 — see `packages/core/src/habit-tree.ts`. Source of the
-requirements: `INITIALSPEC.md`.
+`logs/` and `archived.tsx` screens. Nested habits, custom sort order, and
+the Heatmap view (all below) landed after Phase 4 — see
+`packages/core/src/habit-tree.ts` and `packages/core/src/views.ts`'s
+`computeHeatmap`. Source of the requirements: `INITIALSPEC.md`.
 
 ## Entities
 
@@ -26,6 +27,7 @@ requirements: `INITIALSPEC.md`.
 | `archivedAt`    | Archived habits leave the dashboard but keep their config.                                     |
 | `parentId`      | Nested habits (below). `null` = top-level.                                                     |
 | `allowDirectLogging` | Nested habits (below). Defaults `true`.                                                   |
+| `sortOrder`     | Custom sort order (below). Relative to other habits sharing `parentId` only.                   |
 | logs            | Zero or more.                                                                                  |
 
 ### Log
@@ -49,6 +51,7 @@ A new habit defaults to two views: **Cumulative** and **Days out of 7**.
 | **Percentage** | `unitsWithAtLeastOneLog / totalUnitsSinceStartDate * 100%`.                                                                                                    |
 | **Days**       | The Percentage **rate** × `N` (N = day count, default 7), shown as `X out of N`. Integer by default; 2 decimals when the setting is on (e.g. `5.14 out of 7`). |
 | **Since**      | Number of `unit`s since the most recent log.                                                                                                                   |
+| **Heatmap**    | A GitHub/Anki-style calendar grid — see "Heatmap" below.                                                                                                       |
 
 All unit-boundary math is done in the user's IANA timezone (`user.timezone`,
 captured at signup).
@@ -121,6 +124,42 @@ reparenting to a habit's own descendant is rejected (would create a cycle).
 - **Log list**: defaults to showing a habit's own logs plus every
   descendant's (labeled with its source habit), with a filter to narrow to
   just this habit's own.
+
+## Custom sort order
+
+Habits can be dragged into whatever order the user likes — either among
+top-level habits, or among one parent's direct subhabits. `sortOrder` is
+only meaningful relative to other habits sharing the same `parentId`;
+comparing it across different `parentId` groups is meaningless. Dragging
+never re-parents a habit — reparenting stays the edit form's job — so a
+drag only ever changes relative order within one existing sibling group.
+
+New/reparented habits (via create, edit, or the nested-habits
+delete/archive reparenting above) are appended to the end of their sibling
+group, never inserted at an arbitrary position.
+
+## Heatmap
+
+A GitHub/Anki-style calendar heatmap — one small colored cell per
+unit-bucket, color intensity scaled by that bucket's log count. Box size
+(`unit`) is day, week, or month — never hour.
+
+- **Window**: a fixed number of buckets ending at "now", giving every unit
+  roughly the same visual footprint — day → 182 (26 weeks), week → 52,
+  month → 24.
+- **Day-unit alignment**: aligned to 26 *complete* ISO-Monday weeks (not
+  simply "182 days back"), so it renders as a real calendar grid — 26
+  columns (weeks) × 7 rows (Monday–Sunday), matching this app's existing
+  Monday week-start convention. Week/month units have no day-of-week
+  concept, so they're just the trailing N buckets with no calendar
+  alignment.
+- **Color**: a relative intensity scale (not fixed absolute thresholds) —
+  zero logs is neutral, otherwise scaled by that bucket's count against
+  the busiest bucket currently shown, in shades of the app's brand color
+  (not the red/orange/green target-highlight system — a heatmap has no
+  target).
+- Like every other view, a heatmap's counts include a habit's own logs
+  plus every non-archived subhabit's (nested habits' rollup, above).
 
 ## Offline (Phase 5)
 

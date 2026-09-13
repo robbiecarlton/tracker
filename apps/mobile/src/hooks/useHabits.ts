@@ -14,12 +14,18 @@ import type { ApiHabit } from "@/api/types";
  * the consuming screen, since `expo-router`'s `useFocusEffect` isn't a plain
  * `useEffect` and doesn't trip the "no setState in an effect body" lint rule
  * a directly-fetching `useEffect` here would.
+ *
+ * `setHabits` is exposed as an escape hatch for optimistic local updates
+ * that don't warrant a full round trip before the UI reflects them (e.g.
+ * drag-to-reorder on the dashboard) — callers still fire the real mutation
+ * separately and fall back to `refetch()` on failure.
  */
 export function useHabits(): {
   habits: ApiHabit[];
   loading: boolean;
   error: string | undefined;
   refetch: () => Promise<void>;
+  setHabits: (habits: ApiHabit[]) => void;
 } {
   const [habits, setHabits] = useState<ApiHabit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,5 +44,5 @@ export function useHabits(): {
     }
   }, []);
 
-  return { habits, loading, error, refetch };
+  return { habits, loading, error, refetch, setHabits };
 }

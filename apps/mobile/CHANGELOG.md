@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-12
+
+### Added
+
+- Drag-to-reorder on the dashboard: a small "⠿" handle on each `HabitCard`
+  (long-press to drag), backed by new `react-native-gesture-handler` /
+  `react-native-reanimated` / `react-native-draggable-flatlist`
+  dependencies (root layout now wraps everything in
+  `GestureHandlerRootView`). Dragging never changes a habit's parent —
+  only its relative order within its real sibling group (top-level, or one
+  parent's direct subhabits) — so however a drop looks mid-gesture, the
+  next render always regroups correctly (see `(app)/index.tsx`'s
+  `onDragEnd`). Persists via the new `reorderHabits` API call;
+  `useHabits()` gains a `setHabits` escape hatch for the optimistic local
+  update.
+- Heatmap: a `Heatmap` view kind is now selectable on the create/edit form
+  (with a "Box size" day/week/month chip row, no hour), rendered as a new
+  `components/Heatmap.tsx` full-width grid below a habit's usual tiles
+  (can't fit a heatmap in a small tile) — real calendar-aligned columns
+  for the day unit, a simple wrapped grid for week/month. Cell color is a
+  relative intensity scale in the app's brand blue. Rolls up subhabit logs
+  automatically, same as every other view.
+
 ## [0.5.0] - 2026-09-12
 
 ### Added

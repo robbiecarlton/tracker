@@ -8,6 +8,7 @@ import {
   DEFAULT_HABIT_VIEWS,
   getDescendants,
   habitFormSchema,
+  reorderHabitsSchema,
   updateLogSchema,
   wouldCreateCycle,
   type Habit,
@@ -17,7 +18,7 @@ import {
   type HabitView,
   type HabitViewInput,
 } from "@tracker/core";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { auth } from "../auth";
 import { db } from "../db";
 import { habit, habitLog, habitStartDateChange, habitView } from "../db/schema";
@@ -67,6 +68,7 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
       parsed.data.views && parsed.data.views.length > 0 ? parsed.data.views : DEFAULT_HABIT_VIEWS;
 
     await db.transaction(async (tx) => {
+      const sortOrder = await nextSortOrder(tx, userId, parentId);
       await tx.insert(habit).values({
         id: habitId,
         userId,
@@ -77,6 +79,7 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
         // A brand-new habit can't have subhabits yet, so there's nothing to
         // gate this on — always starts loggable directly.
         allowDirectLogging: true,
+        sortOrder,
         createdAt: now,
         updatedAt: now,
       });
@@ -86,6 +89,50 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
 
     const [created] = await listHabitsForUser(userId, habitId);
     return reply.status(201).send({ habit: created });
+  });
+
+  app.patch("/api/habits/reorder", async (request, reply) => {
+    const userId = await getSessionUserId(request);
+    if (!userId) return reply.status(401).send({ error: "unauthenticated" });
+
+    const parsed = parseBody(request, reorderHabitsSchema);
+    if ("error" in parsed) return reply.status(parsed.error.status).send(parsed.error.body);
+
+    const { parentId, orderedIds } = parsed.data;
+    const siblingRows = await db
+      .select({ id: habit.id })
+      .from(habit)
+      .where(
+        parentId === null
+          ? and(eq(habit.userId, userId), isNull(habit.parentId))
+          : and(eq(habit.userId, userId), eq(habit.parentId, parentId)),
+      );
+    const siblingIds = new Set(siblingRows.map((r) => r.id));
+
+    // `orderedIds` must be exactly a permutation of the current sibling
+    // group — same count, no duplicates, every id actually a member —
+    // guarding against a stale client sending a group that's since changed
+    // (a habit deleted/moved/added since the client last fetched).
+    const isValidPermutation =
+      orderedIds.length === siblingRows.length &&
+      new Set(orderedIds).size === orderedIds.length &&
+      orderedIds.every((id) => siblingIds.has(id));
+    if (!isValidPermutation) {
+      return reply.status(400).send({ error: "invalid_reorder" });
+    }
+
+    const now = new Date();
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < orderedIds.length; i++) {
+        await tx
+          .update(habit)
+          .set({ sortOrder: i, updatedAt: now })
+          .where(and(eq(habit.id, orderedIds[i]!), eq(habit.userId, userId)));
+      }
+    });
+
+    const habits = await listHabitsForUser(userId);
+    return { habits };
   });
 
   app.patch("/api/habits/:id", async (request, reply) => {
@@ -122,6 +169,15 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
     const startDateChanged = newStartDate.getTime() !== existing.startDate.getTime();
 
     await db.transaction(async (tx) => {
+      // Only recompute sortOrder when the parent is actually changing —
+      // otherwise leave it exactly where it is within its current group
+      // (an ordinary name/startDate/views edit shouldn't silently bump a
+      // habit to the end of its sibling list).
+      const sortOrder =
+        parsed.data.parentId !== existing.parentId
+          ? await nextSortOrder(tx, userId, parsed.data.parentId)
+          : existing.sortOrder;
+
       await tx
         .update(habit)
         .set({
@@ -129,6 +185,7 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
           startDate: newStartDate,
           parentId: parsed.data.parentId,
           allowDirectLogging: parsed.data.allowDirectLogging,
+          sortOrder,
           updatedAt: now,
         })
         .where(eq(habit.id, id));
@@ -172,18 +229,16 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
     const allDescendants = getDescendants(id, nodes);
     const activeDescendants = allDescendants.filter((d) => !d.habit.archivedAt);
 
+    const now = new Date();
+
     if (activeDescendants.length === 0) {
       // Nothing active to ask the user about. If every descendant here is
       // already archived (rare), silently promote its direct children to
       // top-level rather than cascading — non-destructive, and avoids the
       // self-FK's ON DELETE RESTRICT tripping on a still-referencing row.
+      const directChildIds = allDescendants.filter((d) => d.depth === 1).map((d) => d.habit.id);
       await db.transaction(async (tx) => {
-        if (allDescendants.length > 0) {
-          await tx
-            .update(habit)
-            .set({ parentId: null, updatedAt: new Date() })
-            .where(and(eq(habit.parentId, id), eq(habit.userId, userId)));
-        }
+        await reparentHabits(tx, userId, directChildIds, null, now);
         await tx.delete(habit).where(and(eq(habit.id, id), eq(habit.userId, userId)));
       });
       return reply.status(204).send();
@@ -212,10 +267,8 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
       // Grandchildren and below are untouched: only their immediate
       // parent's identity changes.
       const newParentId = action === "grandparent" ? owned.parentId : null;
-      await tx
-        .update(habit)
-        .set({ parentId: newParentId, updatedAt: new Date() })
-        .where(and(eq(habit.parentId, id), eq(habit.userId, userId)));
+      const directChildIds = allDescendants.filter((d) => d.depth === 1).map((d) => d.habit.id);
+      await reparentHabits(tx, userId, directChildIds, newParentId, now);
       await tx.delete(habit).where(and(eq(habit.id, id), eq(habit.userId, userId)));
     });
 
@@ -338,10 +391,10 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
       // need moving — an already-archived direct child can safely keep
       // pointing at `id`, since `id` isn't going anywhere.
       const newParentId = action === "grandparent" ? owned.parentId : null;
-      await tx
-        .update(habit)
-        .set({ parentId: newParentId, updatedAt: now })
-        .where(and(eq(habit.parentId, id), eq(habit.userId, userId), isNull(habit.archivedAt)));
+      const activeDirectChildIds = activeDescendants
+        .filter((d) => d.depth === 1)
+        .map((d) => d.habit.id);
+      await reparentHabits(tx, userId, activeDirectChildIds, newParentId, now);
       await tx.update(habit).set({ archivedAt: now, updatedAt: now }).where(eq(habit.id, id));
     });
 
@@ -400,6 +453,7 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
       // either: its own startDate never changed.
       await tx.update(habit).set({ archivedAt: now, updatedAt: now }).where(eq(habit.id, id));
 
+      const sortOrder = await nextSortOrder(tx, userId, newParentId);
       await tx.insert(habit).values({
         id: newHabitId,
         userId,
@@ -408,6 +462,7 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
         archivedAt: null,
         parentId: newParentId,
         allowDirectLogging: parsed.data.allowDirectLogging,
+        sortOrder,
         createdAt: now,
         updatedAt: now,
       });
@@ -450,6 +505,55 @@ async function listHabitNodesForUser(userId: string): Promise<HabitNode[]> {
     parentId: r.parentId,
     archivedAt: r.archivedAt ? r.archivedAt.toISOString() : null,
   }));
+}
+
+/**
+ * The `sortOrder` to give a new (or newly-reparented) habit — appended to
+ * the end of its sibling group (everyone else sharing `parentId`). Callers
+ * pass either the plain `db` or an open `tx`, so this composes into a
+ * transaction alongside the write it's for.
+ */
+async function nextSortOrder(
+  dbOrTx: typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0],
+  userId: string,
+  parentId: string | null,
+): Promise<number> {
+  const siblings = await dbOrTx
+    .select({ sortOrder: habit.sortOrder })
+    .from(habit)
+    .where(
+      parentId === null
+        ? and(eq(habit.userId, userId), isNull(habit.parentId))
+        : and(eq(habit.userId, userId), eq(habit.parentId, parentId)),
+    );
+  const max = siblings.reduce((m, s) => Math.max(m, s.sortOrder), -1);
+  return max + 1;
+}
+
+/**
+ * Reparents a batch of habits (e.g. a deleted/archived parent's direct
+ * children) to `newParentId`, giving each a fresh sequential `sortOrder`
+ * appended after that group's existing members — so a batch of
+ * newly-arrived siblings lands together at the end in their prior relative
+ * order, rather than colliding with (or interleaving into) whatever's
+ * already there.
+ */
+async function reparentHabits(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  userId: string,
+  habitIds: readonly string[],
+  newParentId: string | null,
+  now: Date,
+): Promise<void> {
+  if (habitIds.length === 0) return;
+  let nextOrder = await nextSortOrder(tx, userId, newParentId);
+  for (const id of habitIds) {
+    await tx
+      .update(habit)
+      .set({ parentId: newParentId, sortOrder: nextOrder, updatedAt: now })
+      .where(and(eq(habit.id, id), eq(habit.userId, userId)));
+    nextOrder += 1;
+  }
 }
 
 /** Fetches a log row scoped to its (already-ownership-verified) habit. */
@@ -496,7 +600,12 @@ async function listHabitsForUser(userId: string, onlyHabitId?: string): Promise<
       onlyHabitId
         ? and(eq(habit.userId, userId), eq(habit.id, onlyHabitId))
         : eq(habit.userId, userId),
-    );
+    )
+    // Only relative order *within* a parentId group is meaningful (see
+    // `sortOrder`'s doc comment in schema.ts) — a single global order-by is
+    // sufficient since `childrenOf`/`buildDashboardRows` (`@tracker/core`)
+    // filter-preserving-order per parentId from this array.
+    .orderBy(asc(habit.sortOrder));
   if (habitRows.length === 0) return [];
 
   const habitIds = habitRows.map((h) => h.id);
@@ -534,6 +643,7 @@ function toHabit(
     archivedAt: row.archivedAt ? row.archivedAt.toISOString() : null,
     parentId: row.parentId,
     allowDirectLogging: row.allowDirectLogging,
+    sortOrder: row.sortOrder,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     logs: (logsByHabit.get(row.id) ?? []).map(toHabitLog),

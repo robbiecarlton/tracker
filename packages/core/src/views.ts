@@ -59,8 +59,37 @@ export interface SinceResult {
   unit: Unit;
 }
 
+/** A heatmap's cell/bucket size — day, week, or month, never hour (schema-enforced). */
+export type HeatmapUnit = "day" | "week" | "month";
+
+/** Fixed window length per unit — see `computeHeatmap`'s doc comment for why these numbers. */
+const HEATMAP_BUCKET_COUNT: Record<HeatmapUnit, number> = {
+  day: 182, // 26 complete ISO-Monday weeks
+  week: 52,
+  month: 24,
+};
+
+export interface HeatmapBucket {
+  /** ISO start of this bucket, in the requester's timezone. */
+  start: string;
+  /** Log count within this bucket — 0 renders as "no activity", not "no data". */
+  count: number;
+}
+
+export interface HeatmapResult {
+  kind: "heatmap";
+  unit: HeatmapUnit;
+  /** Oldest first, newest (current, possibly in-progress) last — fixed length per unit. */
+  buckets: HeatmapBucket[];
+}
+
 export type ViewResult =
-  CumulativeResult | StreakResult | PercentageResult | DaysResult | SinceResult;
+  | CumulativeResult
+  | StreakResult
+  | PercentageResult
+  | DaysResult
+  | SinceResult
+  | HeatmapResult;
 
 function resolveUnit(view: HabitView): Unit {
   return view.unit ?? DEFAULT_UNIT;
@@ -77,6 +106,25 @@ export function bucketLogsByUnit(
     keys.add(unitKey(parseInZone(log.timestamp, timeZone), unit));
   }
   return keys;
+}
+
+/**
+ * Like `bucketLogsByUnit`, but counts logs per unit-bucket instead of just
+ * presence — Heatmap needs actual counts for cell intensity; every other
+ * view only ever needs "was there ≥1 log that unit". Exported for direct
+ * unit testing.
+ */
+export function countLogsByUnit(
+  logs: readonly HabitLog[],
+  unit: Unit,
+  timeZone: string,
+): ReadonlyMap<string, number> {
+  const counts = new Map<string, number>();
+  for (const log of logs) {
+    const key = unitKey(parseInZone(log.timestamp, timeZone), unit);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts;
 }
 
 export function computeCumulative(
@@ -210,6 +258,50 @@ export function computeSince(
   return { kind: "since", value, unit };
 }
 
+/**
+ * GitHub/Anki-style calendar heatmap: a fixed-length run of unit-buckets
+ * ending at "now", each carrying its log count. `HEATMAP_BUCKET_COUNT`
+ * gives every unit roughly the same visual footprint (day → 182 = 26
+ * weeks, week → 52, month → 24).
+ *
+ * `day` uniquely aligns its window to 26 *complete* ISO-Monday weeks
+ * (starting the Monday 25 weeks before the current week's Monday) rather
+ * than simply "182 days back from today" — so the UI can lay it out as a
+ * clean 26-column × 7-row grid (columns = weeks) with no partial leading
+ * column. `week`/`month` have no such alignment concern (the UI doesn't
+ * do calendar-column layout for those — see `Heatmap.tsx`), so they're
+ * just the trailing N buckets ending at the current, possibly in-progress
+ * one.
+ */
+export function computeHeatmap(
+  habit: Habit,
+  view: HabitView,
+  logs: readonly HabitLog[],
+  ctx: TimeContext,
+): HeatmapResult {
+  const unit = (view.unit ?? "day") as HeatmapUnit;
+  const bucketCount = HEATMAP_BUCKET_COUNT[unit];
+  const now = nowInZone(ctx);
+  const counts = countLogsByUnit(logs, unit, ctx.timeZone);
+
+  const windowStart =
+    unit === "day"
+      ? addUnits(startOfUnit(now, "week"), "week", -(bucketCount / 7 - 1))
+      : addUnits(startOfUnit(now, unit), unit, -(bucketCount - 1));
+
+  const buckets: HeatmapBucket[] = [];
+  let cursor = windowStart;
+  for (let i = 0; i < bucketCount; i++) {
+    buckets.push({
+      start: cursor.toISO() ?? cursor.toJSDate().toISOString(),
+      count: counts.get(unitKey(cursor, unit)) ?? 0,
+    });
+    cursor = addUnits(cursor, unit, 1);
+  }
+
+  return { kind: "heatmap", unit, buckets };
+}
+
 /** Dispatches on `view.kind`. Exhaustive over `ViewKind` (compile error if a case is missed). */
 export function computeHabitView(
   habit: Habit,
@@ -228,6 +320,8 @@ export function computeHabitView(
       return computeDays(habit, view, logs, ctx);
     case "since":
       return computeSince(habit, view, logs, ctx);
+    case "heatmap":
+      return computeHeatmap(habit, view, logs, ctx);
     default: {
       const exhaustive: never = view.kind;
       throw new Error(`Unhandled view kind: ${exhaustive as string}`);

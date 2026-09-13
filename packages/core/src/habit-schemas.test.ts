@@ -45,6 +45,25 @@ describe("habitViewInputSchema", () => {
       true,
     );
   });
+
+  it("accepts day/week/month as a heatmap unit, but rejects hour", () => {
+    expect(habitViewInputSchema.safeParse({ kind: "heatmap", unit: "day" }).success).toBe(true);
+    expect(habitViewInputSchema.safeParse({ kind: "heatmap", unit: "week" }).success).toBe(true);
+    expect(habitViewInputSchema.safeParse({ kind: "heatmap", unit: "month" }).success).toBe(true);
+    expect(habitViewInputSchema.safeParse({ kind: "heatmap" }).success).toBe(true); // defaults later
+    expect(habitViewInputSchema.safeParse({ kind: "heatmap", unit: "hour" }).success).toBe(false);
+  });
+
+  it("rejects target/days/cumulationGoal on a heatmap view (none apply)", () => {
+    expect(
+      habitViewInputSchema.safeParse({ kind: "heatmap", target: 5, targetType: "at_least" })
+        .success,
+    ).toBe(false);
+    expect(habitViewInputSchema.safeParse({ kind: "heatmap", days: 7 }).success).toBe(false);
+    expect(habitViewInputSchema.safeParse({ kind: "heatmap", cumulationGoal: 10 }).success).toBe(
+      false,
+    );
+  });
 });
 
 describe("habitFormSchema", () => {

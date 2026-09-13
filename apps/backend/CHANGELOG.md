@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-12
+
+### Added
+
+- Custom habit sort order: `habit.sort_order` (migration
+  `0005_add_habit_sort_order`, backfilled to existing insertion order via a
+  `ROW_NUMBER() OVER (PARTITION BY user_id, parent_id ORDER BY created_at)`
+  window function). `listHabitsForUser` now orders by it. Create and every
+  reparent path (`PATCH /api/habits/:id`, the delete/archive
+  `top_level`/`grandparent` reparenting, archive-and-clone) append the
+  affected habit(s) to the end of their new sibling group via new
+  `nextSortOrder`/`reparentHabits` helpers.
+- New endpoint `PATCH /api/habits/reorder`, body `{ parentId, orderedIds }`
+  — persists a drag-reorder for one sibling group; rejects
+  (`invalid_reorder`) unless `orderedIds` is exactly a permutation of that
+  group's current ids.
+- Heatmap: no backend changes needed beyond the shared `viewKindSchema`
+  enum gaining `"heatmap"` (`@tracker/core`) — it's computed client-side
+  from logs already returned by `GET /api/habits`, same as every other
+  view.
+
 ## [0.4.0] - 2026-09-12
 
 ### Added

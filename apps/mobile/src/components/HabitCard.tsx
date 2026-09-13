@@ -4,6 +4,7 @@ import {
   computeHighlight,
   type HabitLog,
   type HabitView,
+  type HeatmapResult,
   type TimeContext,
 } from "@tracker/core";
 import { useRouter } from "expo-router";
@@ -14,6 +15,7 @@ import type { ApiHabit } from "@/api/types";
 import { confirmAlert } from "@/lib/confirm";
 import { theme } from "@/lib/theme";
 import { formatViewValue, highlightValueForView, viewLabel } from "@/lib/view-format";
+import { Heatmap } from "./Heatmap";
 import { ViewTile } from "./ViewTile";
 
 /**
@@ -39,11 +41,27 @@ function safeComputeTile(
   }
 }
 
+/** Same isolation as `safeComputeTile`, for a heatmap view — `null` (silently skipped) on error. */
+function safeComputeHeatmap(
+  habit: ApiHabit,
+  view: HabitView,
+  logs: readonly HabitLog[],
+  ctx: TimeContext,
+): HeatmapResult | null {
+  try {
+    const result = computeHabitView(habit, view, logs, ctx);
+    return result.kind === "heatmap" ? result : null;
+  } catch {
+    return null;
+  }
+}
+
 export function HabitCard({
   habit,
   allHabits,
   timeZone,
   onChanged,
+  onDragHandleLongPress,
 }: {
   habit: ApiHabit;
   /** The user's full habit list — needed so a habit with subhabits rolls up
@@ -51,6 +69,12 @@ export function HabitCard({
   allHabits: ApiHabit[];
   timeZone: string;
   onChanged: () => void | Promise<void>;
+  /** Undefined = no drag handle rendered (e.g. anywhere `HabitCard` is used
+   * outside the reorderable dashboard). Wired to `DraggableFlatList`'s
+   * per-item `drag` callback — the card itself has too many other tappable
+   * actions (Edit, + Subhabit, Log, …) to make the whole card the drag
+   * trigger. */
+  onDragHandleLongPress?: () => void;
 }) {
   const router = useRouter();
   const [logging, setLogging] = useState(false);
@@ -72,6 +96,17 @@ export function HabitCard({
   return (
     <View style={styles.card}>
       <View style={styles.header}>
+        {onDragHandleLongPress ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Drag to reorder"
+            onLongPress={onDragHandleLongPress}
+            hitSlop={8}
+            style={styles.dragHandle}
+          >
+            <Text style={styles.dragHandleText}>⠿</Text>
+          </Pressable>
+        ) : null}
         <Text style={styles.name}>{habit.name}</Text>
         <View style={styles.headerLinks}>
           <Pressable
@@ -92,18 +127,33 @@ export function HabitCard({
       </View>
 
       <View style={styles.tiles}>
-        {habit.views.map((view) => {
-          const tile = safeComputeTile(habit, view, logs, ctx);
+        {habit.views
+          .filter((view) => view.kind !== "heatmap")
+          .map((view) => {
+            const tile = safeComputeTile(habit, view, logs, ctx);
+            return (
+              <ViewTile
+                key={view.id}
+                label={viewLabel(view.kind)}
+                value={tile.value}
+                highlightColor={tile.highlightColor}
+              />
+            );
+          })}
+      </View>
+
+      {habit.views
+        .filter((view) => view.kind === "heatmap")
+        .map((view) => {
+          const result = safeComputeHeatmap(habit, view, logs, ctx);
+          if (!result) return null;
           return (
-            <ViewTile
-              key={view.id}
-              label={viewLabel(view.kind)}
-              value={tile.value}
-              highlightColor={tile.highlightColor}
-            />
+            <View key={view.id} style={styles.heatmapSection}>
+              <Text style={styles.heatmapLabel}>Heatmap</Text>
+              <Heatmap result={result} />
+            </View>
           );
         })}
-      </View>
 
       <View style={styles.actions}>
         {habit.allowDirectLogging ? (
@@ -151,12 +201,16 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 12,
   },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  header: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  dragHandle: { paddingVertical: 2, paddingHorizontal: 2 },
+  dragHandleText: { fontSize: 18, color: theme.colors.text.faint, lineHeight: 20 },
   headerLinks: { alignItems: "flex-end", gap: 4 },
-  name: { fontSize: 17, fontWeight: "700", color: theme.colors.text.primary },
+  name: { flex: 1, fontSize: 17, fontWeight: "700", color: theme.colors.text.primary },
   editLink: { color: theme.colors.brand, fontWeight: "600", fontSize: 14 },
   addSubhabitLink: { color: theme.colors.text.muted, fontSize: 13 },
   tiles: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  heatmapSection: { gap: 4 },
+  heatmapLabel: { fontSize: 11, color: theme.colors.text.muted },
   actions: { flexDirection: "row", alignItems: "center", gap: 16 },
   logButton: {
     backgroundColor: theme.colors.brand,

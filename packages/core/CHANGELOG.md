@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-12
+
+### Added
+
+- Custom habit sort order: `Habit.sortOrder` — relative position within
+  habits sharing the same `parentId`, meaningless across different
+  `parentId` groups. Managed exclusively by drag-to-reorder
+  (`PATCH /api/habits/reorder`), never by the create/edit form; new
+  `reorderHabitsSchema`/`ReorderHabitsInput`.
+- Heatmap: a sixth `ViewKind`, a GitHub/Anki-style calendar heatmap with a
+  configurable box size (`HabitView.unit`, restricted to day/week/month —
+  no hour). `views.ts` gains `countLogsByUnit` (a counting sibling to the
+  existing presence-only `bucketLogsByUnit`), `HeatmapResult`, and
+  `computeHeatmap` — a fixed-length run of unit-buckets ending at "now"
+  (182/52/24 for day/week/month), each carrying its log count. The `day`
+  unit aligns its window to 26 complete ISO-Monday weeks so a UI can lay
+  it out as a clean 26×7 grid.
+
 ## [0.6.0] - 2026-09-12
 
 ### Added
