@@ -130,6 +130,35 @@ export function HabitCard({
       </Pressable>
     ) : null;
 
+  // Shared between the collapsed header's right-aligned slot and the
+  // expanded actions row below — same two controls either way, just
+  // relocated when collapsed (the "Logs" list link stays only in the
+  // expanded row; it's not a logging action itself).
+  const logAndNoteActions = habit.allowDirectLogging ? (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onLog}
+        disabled={logging}
+        style={({ pressed }) => [
+          styles.logButton,
+          pressed && styles.logButtonPressed,
+          logging && styles.logButtonDisabled,
+        ]}
+      >
+        <Text style={styles.logButtonText}>{logging ? "Logging…" : "Log"}</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push({ pathname: "/habits/[id]/logs/new", params: { id: habit.id } })}
+        hitSlop={8}
+        style={styles.notesLink}
+      >
+        <Text style={styles.notesLinkText}>+ note</Text>
+      </Pressable>
+    </>
+  ) : null;
+
   const collapseToggle = onToggleContentCollapsed ? (
     <Pressable
       accessibilityRole="button"
@@ -153,6 +182,9 @@ export function HabitCard({
             <Text style={styles.name}>{habit.name}</Text>
             {collapseToggle}
           </View>
+          {logAndNoteActions ? (
+            <View style={styles.collapsedActions}>{logAndNoteActions}</View>
+          ) : null}
         </View>
       </View>
     );
@@ -214,30 +246,7 @@ export function HabitCard({
         })}
 
       <View style={styles.actions}>
-        {habit.allowDirectLogging ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={onLog}
-            disabled={logging}
-            style={({ pressed }) => [
-              styles.logButton,
-              pressed && styles.logButtonPressed,
-              logging && styles.logButtonDisabled,
-            ]}
-          >
-            <Text style={styles.logButtonText}>{logging ? "Logging…" : "Log"}</Text>
-          </Pressable>
-        ) : null}
-        {habit.allowDirectLogging ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push({ pathname: "/habits/[id]/logs/new", params: { id: habit.id } })}
-            hitSlop={8}
-            style={styles.notesLink}
-          >
-            <Text style={styles.notesLinkText}>+ note</Text>
-          </Pressable>
-        ) : null}
+        {logAndNoteActions}
         <Pressable
           accessibilityRole="button"
           onPress={() => router.push({ pathname: "/habits/[id]/logs", params: { id: habit.id } })}
@@ -271,6 +280,7 @@ const styles = StyleSheet.create({
   collapseToggle: { paddingVertical: 2, paddingHorizontal: 2 },
   collapseToggleText: { fontSize: 19, color: theme.colors.text.muted, lineHeight: 22 },
   headerLinks: { alignItems: "flex-end", gap: 4, marginLeft: "auto" },
+  collapsedActions: { flexDirection: "row", alignItems: "center", gap: 12, marginLeft: "auto" },
   name: { fontSize: 17, fontWeight: "700", color: theme.colors.text.primary },
   editLink: { color: theme.colors.brand, fontWeight: "600", fontSize: 14 },
   addSubhabitLink: { color: theme.colors.text.muted, fontSize: 13 },

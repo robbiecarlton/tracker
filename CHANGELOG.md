@@ -9,6 +9,13 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-09-14 — Log/+note stay visible when a habit is content-collapsed
+
+**`@tracker/mobile` 0.8.1**: collapsing a habit's own content used to hide
+its Log/`+note` buttons along with everything else — they're still useful
+collapsed, so they now stay visible, relocated to a right-aligned slot in
+the collapsed header.
+
 ## 2026-09-14 — Per-habit collapse toggle; nested dashboard boxes
 
 **`@tracker/mobile` 0.8.0**: a new collapse toggle ("▴"/"▾") beside each

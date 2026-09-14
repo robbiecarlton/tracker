@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-09-14
+
+### Fixed
+
+- A content-collapsed habit card hid its Log/`+note` actions entirely,
+  along with everything else — but those two are still useful even when
+  collapsed. They now stay visible, relocated to a right-aligned slot in
+  the collapsed header (same controls, same `habit.allowDirectLogging`
+  gating, shared with the expanded actions row via a new
+  `logAndNoteActions` variable rather than duplicated).
+
 ## [0.8.0] - 2026-09-14
 
 ### Changed
