@@ -24,6 +24,13 @@ involves no native drag APIs at all. iOS is unaffected throughout, still
 on the original library. Also: the heatmap's legend now shows its unit
 ("Day"/"Week"/"Month") instead of the word "Heatmap".
 
+**`@tracker/backend` 0.5.1**: once dragging itself worked, reordering a
+group with an archived sibling in it still failed — `PATCH
+/api/habits/reorder`'s membership check didn't exclude archived habits, so
+it rejected the client's (correctly archived-free) `orderedIds` as
+invalid, which looked client-side like the reorder reverting a moment
+after it applied. Fixed to match the dashboard's active-only scope.
+
 ## 2026-09-12 — Custom sort order + heatmap view
 
 Habits can now be dragged into whatever order you like (top-level, or

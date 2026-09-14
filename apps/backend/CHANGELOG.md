@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-14
+
+### Fixed
+
+- `PATCH /api/habits/reorder` rejected (`invalid_reorder`) any reorder in a
+  sibling group that had an archived member — its sibling-membership query
+  didn't exclude archived habits, but the dashboard never shows or drags
+  them (`buildDashboardRows` hides archived habits at every level), so the
+  client's `orderedIds` never included one either. The count mismatch
+  looked like a stale/invalid request and was rejected outright, which
+  showed up client-side as a reorder visibly reverting a moment after it
+  applied (the optimistic update, then the failed request's `refetch()`
+  overwriting it back to the pre-drag order). Now filters to
+  non-archived siblings, matching what the client actually sends.
+
 ## [0.5.0] - 2026-09-12
 
 ### Added
