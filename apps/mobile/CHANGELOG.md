@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-09-14
+
+### Added
+
+- Web drag-to-reorder now shows a small floating "ghost" chip (drag handle
+  glyph + habit name) that follows the pointer while dragging — new
+  `lib/web-drag-ghost.ts`, a plain-DOM helper (not a React component, so
+  tracking raw pointer coordinates on every `pointermove` doesn't pay for
+  a re-render each time). Native's `react-native-draggable-flatlist`
+  already shows an equivalent lift/scale effect on its own, so this is
+  web-only.
+
 ## [0.6.3] - 2026-09-14
 
 ### Fixed

@@ -37,6 +37,10 @@ sibling it landed on, so dragging something down onto its very next
 neighbor just put it back where it started. Now direction-aware: inserts
 after the target when dragging down, before when dragging up.
 
+**`@tracker/mobile` 0.6.4**: web drag-to-reorder now shows a floating
+"ghost" chip (drag handle + habit name) that follows the pointer while
+dragging, matching native's own lift/scale effect.
+
 ## 2026-09-12 — Custom sort order + heatmap view
 
 Habits can now be dragged into whatever order you like (top-level, or

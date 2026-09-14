@@ -15,6 +15,7 @@ import { useHabits } from "@/hooks/useHabits";
 import { signOut } from "@/lib/auth";
 import { getCollapsedHabitIds, setCollapsedHabitIds } from "@/lib/expanded-habits";
 import { theme } from "@/lib/theme";
+import { createWebDragGhost } from "@/lib/web-drag-ghost";
 
 type DashboardRow = { habit: ApiHabit; depth: number };
 
@@ -23,10 +24,16 @@ export default function Dashboard() {
   const { user } = useCurrentUser();
   const { habits: allHabits, loading, error, refetch, setHabits } = useHabits();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  // Web drag-and-drop only — neither needs to trigger a render, so both
-  // live outside React state (see the block below `applyReorder`).
+  // Web drag-and-drop only — none of these need to trigger a render, so
+  // they all live outside React state (see the block below `applyReorder`).
   const webDrag = useRef<{ habitId: string; pointerId: number } | null>(null);
   const webRowEls = useRef<Map<string, HTMLElement>>(new Map());
+  const webGhost = useRef<ReturnType<typeof createWebDragGhost> | null>(null);
+  function getWebGhost() {
+    if (!webGhost.current) webGhost.current = createWebDragGhost();
+    return webGhost.current;
+  }
+  useEffect(() => () => webGhost.current?.destroy(), []);
 
   // The dashboard, create/edit/log screens each own an independent fetch —
   // there's no shared cache yet (see useHabits' doc comment) — so refetch
@@ -106,7 +113,7 @@ export default function Dashboard() {
    * (simpler than native's "snap to the real group" recovery, and just as
    * reachable — reparenting isn't a drag gesture on any platform here).
    */
-  function registerWebDragHandle(habitId: string, node: unknown) {
+  function registerWebDragHandle(habitId: string, habitName: string, node: unknown) {
     if (Platform.OS !== "web" || !node) return;
     const el = node as HTMLElement;
     el.style.cursor = "grab";
@@ -116,11 +123,17 @@ export default function Dashboard() {
       el.setPointerCapture(e.pointerId);
       webDrag.current = { habitId, pointerId: e.pointerId };
       el.style.cursor = "grabbing";
+      getWebGhost().show(habitName, e.clientX, e.clientY);
+    };
+    el.onpointermove = (e) => {
+      if (webDrag.current?.pointerId !== e.pointerId) return;
+      getWebGhost().move(e.clientX, e.clientY);
     };
     const endDrag = (e: PointerEvent, shouldDrop: boolean) => {
       const drag = webDrag.current;
       webDrag.current = null;
       el.style.cursor = "grab";
+      getWebGhost().hide();
       if (!drag || drag.pointerId !== e.pointerId) return;
       if (!shouldDrop) return;
 
@@ -237,7 +250,7 @@ export default function Dashboard() {
           contentContainerStyle={styles.list}
           renderItem={({ item }) =>
             renderRow(item, {
-              dragHandleRef: (node) => registerWebDragHandle(item.habit.id, node),
+              dragHandleRef: (node) => registerWebDragHandle(item.habit.id, item.habit.name, node),
               rowRef: (node) => registerWebRow(item.habit.id, node),
             })
           }
