@@ -252,11 +252,12 @@ export function HabitCard({
 }
 
 const styles = StyleSheet.create({
+  // No border/padding of its own — `HabitCard` is only ever rendered
+  // inside `(app)/index.tsx`'s `nodeBox`, which already provides both
+  // (and needs to be the *only* box, since it also wraps this habit's
+  // nested subhabits — giving this its own identical border/padding too
+  // produced a visible double ring around every node).
   card: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 14,
-    padding: 14,
     gap: 12,
   },
   header: { flexDirection: "row", alignItems: "flex-start", gap: 8 },

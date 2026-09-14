@@ -25,7 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `DraggableFlatList` to `react-native-draggable-flatlist`'s own
   `NestableScrollContainer`/`NestableDraggableFlatList` — its
   purpose-built solution for a draggable list inside another draggable
-  list's row, nested arbitrarily.
+  list's row, nested arbitrarily. `HabitCard`'s own `card` style lost its
+  border/padding in the process — it's only ever rendered inside the new
+  wrapping box now, and keeping both drew two concentric borders around
+  every node instead of one.
 
 ### Added
 
