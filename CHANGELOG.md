@@ -31,6 +31,12 @@ it rejected the client's (correctly archived-free) `orderedIds` as
 invalid, which looked client-side like the reorder reverting a moment
 after it applied. Fixed to match the dashboard's active-only scope.
 
+**`@tracker/mobile` 0.6.3**: web drag-to-reorder could then only move a
+habit *up* — dropping it always inserted it immediately *before* the
+sibling it landed on, so dragging something down onto its very next
+neighbor just put it back where it started. Now direction-aware: inserts
+after the target when dragging down, before when dragging up.
+
 ## 2026-09-12 — Custom sort order + heatmap view
 
 Habits can now be dragged into whatever order you like (top-level, or

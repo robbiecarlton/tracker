@@ -46,3 +46,7 @@ area with unarchive, filtered off the main dashboard.
 - targets for days & percentage, 2-decimal display setting
 - empty states, error states
 - EAS build, App Store assets and submission
+
+## Other (don't do without user opt in) - 
+subhabit count should count all children, not just immediate.
+collabsible top layers

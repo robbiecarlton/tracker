@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-09-14
+
+### Fixed
+
+- Web drag-to-reorder could only move a habit *up* the list — dropping it
+  onto a sibling always inserted it immediately *before* that sibling, so
+  dragging something down onto its very next neighbor just put it right
+  back where it started. Now direction-aware: dropping onto a sibling
+  below the source's current position inserts *after* it; above,
+  *before* it (as before) — so dragging something down past a neighbor
+  actually moves it there.
+
 ## [0.6.2] - 2026-09-14
 
 ### Fixed

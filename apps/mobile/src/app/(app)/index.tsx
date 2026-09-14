@@ -138,12 +138,22 @@ export default function Dashboard() {
       const target = rows.find((r) => r.habit.id === targetId);
       if (!source || !target || source.habit.parentId !== target.habit.parentId) return;
 
-      // Insert the dragged habit immediately before the one it was released over.
-      const orderedIds = rows
-        .filter((r) => r.habit.parentId === source.habit.parentId)
-        .map((r) => r.habit.id)
-        .filter((id) => id !== drag.habitId);
-      orderedIds.splice(orderedIds.indexOf(targetId), 0, drag.habitId);
+      // Which side of the target to land on depends on the drag's
+      // direction: dropping onto a row *below* the source's current
+      // position lands it right *after* that row; dropping onto one
+      // *above* lands it right *before*. Always inserting "before" (as an
+      // earlier version of this did) only ever lets you drag things up —
+      // dropping A onto its very next sibling B would put A right back
+      // where it started, so moving anything down past a neighbor was
+      // impossible.
+      const groupRows = rows.filter((r) => r.habit.parentId === source.habit.parentId);
+      const movingDown =
+        groupRows.findIndex((r) => r.habit.id === drag.habitId) <
+        groupRows.findIndex((r) => r.habit.id === targetId);
+
+      const orderedIds = groupRows.map((r) => r.habit.id).filter((id) => id !== drag.habitId);
+      const targetIndex = orderedIds.indexOf(targetId);
+      orderedIds.splice(movingDown ? targetIndex + 1 : targetIndex, 0, drag.habitId);
       applyReorder(source.habit.parentId, orderedIds);
     };
     el.onpointerup = (e) => endDrag(e, true);
