@@ -99,20 +99,27 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
     if ("error" in parsed) return reply.status(parsed.error.status).send(parsed.error.body);
 
     const { parentId, orderedIds } = parsed.data;
+    // Archived siblings are excluded — the dashboard never shows or drags
+    // them (`buildDashboardRows` hides archived habits at every level), so
+    // the client's `orderedIds` never includes one either. Matching that
+    // scope here is what `orderedIds` is actually a permutation *of*;
+    // requiring archived siblings too would reject every reorder in a
+    // group that has one.
     const siblingRows = await db
       .select({ id: habit.id })
       .from(habit)
       .where(
         parentId === null
-          ? and(eq(habit.userId, userId), isNull(habit.parentId))
-          : and(eq(habit.userId, userId), eq(habit.parentId, parentId)),
+          ? and(eq(habit.userId, userId), isNull(habit.parentId), isNull(habit.archivedAt))
+          : and(eq(habit.userId, userId), eq(habit.parentId, parentId), isNull(habit.archivedAt)),
       );
     const siblingIds = new Set(siblingRows.map((r) => r.id));
 
-    // `orderedIds` must be exactly a permutation of the current sibling
-    // group — same count, no duplicates, every id actually a member —
-    // guarding against a stale client sending a group that's since changed
-    // (a habit deleted/moved/added since the client last fetched).
+    // `orderedIds` must be exactly a permutation of the current
+    // (non-archived) sibling group — same count, no duplicates, every id
+    // actually a member — guarding against a stale client sending a group
+    // that's since changed (a habit deleted/moved/archived/added since the
+    // client last fetched).
     const isValidPermutation =
       orderedIds.length === siblingRows.length &&
       new Set(orderedIds).size === orderedIds.length &&

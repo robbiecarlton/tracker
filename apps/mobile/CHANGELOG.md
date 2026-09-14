@@ -7,6 +7,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-09-14
+
+### Fixed
+
+- The web drag ghost's text used the browser's default sans-serif instead
+  of the app's actual font — it's raw DOM, not a real RN `<Text>`, so it
+  never inherited react-native-web's default font stack the way everything
+  else on the page does. Now sets it explicitly
+  (`-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,
+  sans-serif`, confirmed against a built web export's actual computed
+  style).
+
+## [0.6.4] - 2026-09-14
+
+### Added
+
+- Web drag-to-reorder now shows a small floating "ghost" chip (drag handle
+  glyph + habit name) that follows the pointer while dragging — new
+  `lib/web-drag-ghost.ts`, a plain-DOM helper (not a React component, so
+  tracking raw pointer coordinates on every `pointermove` doesn't pay for
+  a re-render each time). Native's `react-native-draggable-flatlist`
+  already shows an equivalent lift/scale effect on its own, so this is
+  web-only.
+
+## [0.6.3] - 2026-09-14
+
+### Fixed
+
+- Web drag-to-reorder could only move a habit *up* the list — dropping it
+  onto a sibling always inserted it immediately *before* that sibling, so
+  dragging something down onto its very next neighbor just put it right
+  back where it started. Now direction-aware: dropping onto a sibling
+  below the source's current position inserts *after* it; above,
+  *before* it (as before) — so dragging something down past a neighbor
+  actually moves it there.
+
+## [0.6.2] - 2026-09-14
+
+### Fixed
+
+- 0.6.1's HTML5-drag-and-drop fix resolved scrolling but not dragging
+  itself — `draggable`/`dragstart` still didn't work on web. Root cause:
+  react-native-web's own touch-responder system explicitly treats a native
+  `dragstart` as a cancellation signal for its responder gesture tracking
+  (`MOUSE_CANCEL = 'dragstart'` in its source) — native HTML5 drag and
+  RNW's synthetic responder layer are known to conflict by the library's
+  own design. Replaced with hand-rolled Pointer Events instead: the handle
+  captures the pointer on `pointerdown` (`setPointerCapture`, routing every
+  subsequent pointer event to it regardless of what's under the cursor),
+  and on release does a manual `getBoundingClientRect()` hit-test against
+  each row to find the drop target. No native drag APIs involved, so
+  nothing for RNW's responder system to intercept.
+
+## [0.6.1] - 2026-09-13
+
+### Fixed
+
+- Dashboard drag-to-reorder used `react-native-draggable-flatlist`
+  (gesture-handler + reanimated) on every platform — on web this broke
+  both dragging (long-press-based drag activation is unreliable there) and
+  ordinary scrolling (its gesture-handler-wrapped `FlatList` captures
+  scroll input; see e.g. software-mansion/react-native-gesture-handler#1819).
+  Web now uses real HTML5 drag-and-drop instead (`ondragstart`/`ondragover`/
+  `ondrop` wired directly onto each row's DOM node via ref callbacks in
+  `(app)/index.tsx`) — no gesture library involved at all on web, so
+  scrolling is untouched. Native (iOS) keeps the original
+  `react-native-draggable-flatlist` implementation, which isn't reported
+  broken. Same `applyReorder`/persistence logic underneath both.
+- The heatmap's section legend now shows its box-size unit ("Day" / "Week"
+  / "Month" — new `heatmapUnitLabel`) instead of the literal word
+  "Heatmap".
+
 ## [0.6.0] - 2026-09-12
 
 ### Added

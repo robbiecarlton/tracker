@@ -128,6 +128,32 @@ describe("habit sort order", () => {
     expect((await reorder(cookie, null, [a.id, a.id])).status).toBe(400);
   });
 
+  it("succeeds when the sibling group has an archived member — orderedIds only ever covers the active ones", async () => {
+    const cookie = await signUpAndGetCookie(app, "sort-archived-sibling");
+    const a = await createHabit(cookie, { name: "A" });
+    const b = await createHabit(cookie, { name: "B" });
+    const c = await createHabit(cookie, { name: "C" });
+
+    const archive = await app.inject({
+      method: "POST",
+      url: `/api/habits/${b.id}/archive`,
+      headers: { cookie },
+    });
+    expect(archive.statusCode).toBe(200);
+
+    // The dashboard never shows or drags archived habits, so it would only
+    // ever send the two active siblings here — must not be rejected for
+    // "missing" the archived one.
+    const res = await reorder(cookie, null, [c.id, a.id]);
+    expect(res.status).toBe(200);
+
+    const habits = await listHabits(cookie);
+    const activeTopLevelIds = habits
+      .filter((h) => h.parentId === null && !h.archivedAt)
+      .map((h) => h.id);
+    expect(activeTopLevelIds).toEqual([c.id, a.id]);
+  });
+
   it("404-scoped: can't reorder using another user's habit ids", async () => {
     const cookieA = await signUpAndGetCookie(app, "sort-owner-a");
     const cookieB = await signUpAndGetCookie(app, "sort-owner-b");
