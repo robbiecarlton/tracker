@@ -31,6 +31,12 @@ export function unitLabel(unit: Unit, count: number): string {
   return count === 1 ? base : `${base}s`;
 }
 
+/** Capitalized, singular — the heatmap's box-size legend ("Day" / "Week" / "Month"). */
+export function heatmapUnitLabel(unit: Unit): string {
+  const base = UNIT_LABELS[unit];
+  return base.charAt(0).toUpperCase() + base.slice(1);
+}
+
 /** The formatted value string for a habit card's view tile. */
 export function formatViewValue(result: ViewResult): string {
   switch (result.kind) {

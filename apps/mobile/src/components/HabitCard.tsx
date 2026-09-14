@@ -14,7 +14,12 @@ import { createLog } from "@/api/habits";
 import type { ApiHabit } from "@/api/types";
 import { confirmAlert } from "@/lib/confirm";
 import { theme } from "@/lib/theme";
-import { formatViewValue, highlightValueForView, viewLabel } from "@/lib/view-format";
+import {
+  formatViewValue,
+  heatmapUnitLabel,
+  highlightValueForView,
+  viewLabel,
+} from "@/lib/view-format";
 import { Heatmap } from "./Heatmap";
 import { ViewTile } from "./ViewTile";
 
@@ -62,6 +67,7 @@ export function HabitCard({
   timeZone,
   onChanged,
   onDragHandleLongPress,
+  dragHandleRef,
 }: {
   habit: ApiHabit;
   /** The user's full habit list — needed so a habit with subhabits rolls up
@@ -69,12 +75,19 @@ export function HabitCard({
   allHabits: ApiHabit[];
   timeZone: string;
   onChanged: () => void | Promise<void>;
-  /** Undefined = no drag handle rendered (e.g. anywhere `HabitCard` is used
-   * outside the reorderable dashboard). Wired to `DraggableFlatList`'s
-   * per-item `drag` callback — the card itself has too many other tappable
-   * actions (Edit, + Subhabit, Log, …) to make the whole card the drag
-   * trigger. */
+  /** Native (iOS): wired to `DraggableFlatList`'s per-item `drag` callback,
+   * fired on long-press. Undefined on web, where dragging is native HTML5
+   * drag-and-drop instead (see `dragHandleRef`) — `react-native-
+   * draggable-flatlist`'s gesture-handler-based drag/scroll is unreliable
+   * there. Either prop present renders the handle; the card itself has too
+   * many other tappable actions (Edit, + Subhabit, Log, …) to make the
+   * whole card the drag trigger. */
   onDragHandleLongPress?: () => void;
+  /** Web: a ref callback receiving the handle's underlying DOM node, so the
+   * dashboard can attach native `draggable`/`dragstart` listeners
+   * imperatively (see `(app)/index.tsx`). No-op type on native — the ref
+   * is just never read there. */
+  dragHandleRef?: (node: unknown) => void;
 }) {
   const router = useRouter();
   const [logging, setLogging] = useState(false);
@@ -96,8 +109,9 @@ export function HabitCard({
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        {onDragHandleLongPress ? (
+        {onDragHandleLongPress || dragHandleRef ? (
           <Pressable
+            ref={dragHandleRef}
             accessibilityRole="button"
             accessibilityLabel="Drag to reorder"
             onLongPress={onDragHandleLongPress}
@@ -149,7 +163,7 @@ export function HabitCard({
           if (!result) return null;
           return (
             <View key={view.id} style={styles.heatmapSection}>
-              <Text style={styles.heatmapLabel}>Heatmap</Text>
+              <Text style={styles.heatmapLabel}>{heatmapUnitLabel(result.unit)}</Text>
               <Heatmap result={result} />
             </View>
           );

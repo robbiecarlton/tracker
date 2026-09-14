@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-09-13
+
+### Fixed
+
+- Dashboard drag-to-reorder used `react-native-draggable-flatlist`
+  (gesture-handler + reanimated) on every platform — on web this broke
+  both dragging (long-press-based drag activation is unreliable there) and
+  ordinary scrolling (its gesture-handler-wrapped `FlatList` captures
+  scroll input; see e.g. software-mansion/react-native-gesture-handler#1819).
+  Web now uses real HTML5 drag-and-drop instead (`ondragstart`/`ondragover`/
+  `ondrop` wired directly onto each row's DOM node via ref callbacks in
+  `(app)/index.tsx`) — no gesture library involved at all on web, so
+  scrolling is untouched. Native (iOS) keeps the original
+  `react-native-draggable-flatlist` implementation, which isn't reported
+  broken. Same `applyReorder`/persistence logic underneath both.
+- The heatmap's section legend now shows its box-size unit ("Day" / "Week"
+  / "Month" — new `heatmapUnitLabel`) instead of the literal word
+  "Heatmap".
+
 ## [0.6.0] - 2026-09-12
 
 ### Added
