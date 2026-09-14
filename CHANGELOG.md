@@ -9,14 +9,20 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## 2026-09-13 — Fix web drag-to-reorder and scroll
+## 2026-09-14 — Fix web drag-to-reorder and scroll
 
-**`@tracker/mobile` 0.6.1**: `react-native-draggable-flatlist` broke both
-dragging and ordinary scrolling on the web build (its gesture-handler stack
-has no real web support). Web now uses native HTML5 drag-and-drop instead;
-iOS is unaffected, still on the original library. Also: the heatmap's
-legend now shows its unit ("Day"/"Week"/"Month") instead of the word
-"Heatmap".
+**`@tracker/mobile` 0.6.1 → 0.6.2**: `react-native-draggable-flatlist`
+broke both dragging and ordinary scrolling on the web build (its
+gesture-handler stack has no real web support). 0.6.1 fixed scrolling by
+switching web to a plain `FlatList` and tried native HTML5 drag-and-drop
+for the reordering itself — that didn't work either: react-native-web's
+touch-responder system explicitly cancels its own gesture tracking on a
+native `dragstart`, so the two are known to conflict by the library's own
+design. 0.6.2 replaces that with hand-rolled Pointer Events
+(`setPointerCapture` + a manual hit-test on release) instead, which
+involves no native drag APIs at all. iOS is unaffected throughout, still
+on the original library. Also: the heatmap's legend now shows its unit
+("Day"/"Week"/"Month") instead of the word "Heatmap".
 
 ## 2026-09-12 — Custom sort order + heatmap view
 

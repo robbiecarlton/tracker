@@ -23,9 +23,10 @@ export default function Dashboard() {
   const { user } = useCurrentUser();
   const { habits: allHabits, loading, error, refetch, setHabits } = useHabits();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  // Web drag-and-drop only — which habit id is mid-drag, tracked outside
-  // React state since it never needs to trigger a render (see below).
-  const webDragSourceId = useRef<string | null>(null);
+  // Web drag-and-drop only — neither needs to trigger a render, so both
+  // live outside React state (see the block below `applyReorder`).
+  const webDrag = useRef<{ habitId: string; pointerId: number } | null>(null);
+  const webRowEls = useRef<Map<string, HTMLElement>>(new Map());
 
   // The dashboard, create/edit/log screens each own an independent fetch —
   // there's no shared cache yet (see useHabits' doc comment) — so refetch
@@ -89,59 +90,70 @@ export default function Dashboard() {
   }
 
   /**
-   * Web: real HTML5 drag-and-drop instead of `react-native-draggable-
-   * flatlist` — that library's gesture-handler-based drag (and even plain
-   * scrolling) is unreliable on web (no dedicated web support upstream).
-   * Native browser drag-and-drop needs no gesture library at all, so
-   * scrolling is completely untouched.
+   * Web: hand-rolled Pointer Events drag instead of either
+   * `react-native-draggable-flatlist` (gesture-handler-based drag, and even
+   * plain scrolling, are unreliable on web — no dedicated web support
+   * upstream) or native HTML5 drag-and-drop (`draggable`/`dragstart` —
+   * react-native-web's own touch-responder system explicitly treats a
+   * native `dragstart` as a cancellation signal, so the two are known to
+   * fight each other by RNW's own design). Plain Pointer Events + a manual
+   * `getBoundingClientRect()` hit-test sidesteps both: `setPointerCapture`
+   * keeps every subsequent pointer event routed to the handle regardless of
+   * gesture-handler/responder machinery elsewhere on the page, and nothing
+   * here depends on the browser's own drag-gesture heuristics.
    *
-   * Only the small grip handle is `draggable` (`registerWebDragHandle`);
-   * each row is a drop target (`registerWebDropTarget`). Dropping onto a
-   * sibling from a *different* parent is ignored outright (simpler than
-   * native's "snap to the real group" recovery, and just as reachable —
-   * reparenting isn't a drag gesture on any platform here).
+   * Dropping onto a sibling from a *different* parent is ignored outright
+   * (simpler than native's "snap to the real group" recovery, and just as
+   * reachable — reparenting isn't a drag gesture on any platform here).
    */
   function registerWebDragHandle(habitId: string, node: unknown) {
     if (Platform.OS !== "web" || !node) return;
     const el = node as HTMLElement;
-    el.draggable = true;
-    el.ondragstart = (e) => {
-      webDragSourceId.current = habitId;
-      if (e.dataTransfer) {
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", habitId);
+    el.style.cursor = "grab";
+    el.onpointerdown = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      el.setPointerCapture(e.pointerId);
+      webDrag.current = { habitId, pointerId: e.pointerId };
+      el.style.cursor = "grabbing";
+    };
+    const endDrag = (e: PointerEvent, shouldDrop: boolean) => {
+      const drag = webDrag.current;
+      webDrag.current = null;
+      el.style.cursor = "grab";
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      if (!shouldDrop) return;
+
+      let targetId: string | null = null;
+      for (const [id, rowEl] of webRowEls.current) {
+        const rect = rowEl.getBoundingClientRect();
+        if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          targetId = id;
+          break;
+        }
       }
-    };
-    el.ondragend = () => {
-      webDragSourceId.current = null;
-    };
-  }
+      if (!targetId || targetId === drag.habitId) return;
 
-  function registerWebDropTarget(habitId: string, node: unknown) {
-    if (Platform.OS !== "web" || !node) return;
-    const el = node as HTMLElement;
-    el.ondragover = (e) => {
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-    };
-    el.ondrop = (e) => {
-      e.preventDefault();
-      const sourceId = webDragSourceId.current;
-      webDragSourceId.current = null;
-      if (!sourceId || sourceId === habitId) return;
-
-      const source = rows.find((r) => r.habit.id === sourceId);
-      const target = rows.find((r) => r.habit.id === habitId);
+      const source = rows.find((r) => r.habit.id === drag.habitId);
+      const target = rows.find((r) => r.habit.id === targetId);
       if (!source || !target || source.habit.parentId !== target.habit.parentId) return;
 
-      // Insert the dragged habit immediately before the one it was dropped on.
+      // Insert the dragged habit immediately before the one it was released over.
       const orderedIds = rows
         .filter((r) => r.habit.parentId === source.habit.parentId)
         .map((r) => r.habit.id)
-        .filter((id) => id !== sourceId);
-      orderedIds.splice(orderedIds.indexOf(habitId), 0, sourceId);
+        .filter((id) => id !== drag.habitId);
+      orderedIds.splice(orderedIds.indexOf(targetId), 0, drag.habitId);
       applyReorder(source.habit.parentId, orderedIds);
     };
+    el.onpointerup = (e) => endDrag(e, true);
+    el.onpointercancel = (e) => endDrag(e, false);
+  }
+
+  function registerWebRow(habitId: string, node: unknown) {
+    if (Platform.OS !== "web") return;
+    if (node) webRowEls.current.set(habitId, node as HTMLElement);
+    else webRowEls.current.delete(habitId);
   }
 
   function renderRow(
@@ -216,7 +228,7 @@ export default function Dashboard() {
           renderItem={({ item }) =>
             renderRow(item, {
               dragHandleRef: (node) => registerWebDragHandle(item.habit.id, node),
-              rowRef: (node) => registerWebDropTarget(item.habit.id, node),
+              rowRef: (node) => registerWebRow(item.habit.id, node),
             })
           }
         />

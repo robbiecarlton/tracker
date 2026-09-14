@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-09-14
+
+### Fixed
+
+- 0.6.1's HTML5-drag-and-drop fix resolved scrolling but not dragging
+  itself — `draggable`/`dragstart` still didn't work on web. Root cause:
+  react-native-web's own touch-responder system explicitly treats a native
+  `dragstart` as a cancellation signal for its responder gesture tracking
+  (`MOUSE_CANCEL = 'dragstart'` in its source) — native HTML5 drag and
+  RNW's synthetic responder layer are known to conflict by the library's
+  own design. Replaced with hand-rolled Pointer Events instead: the handle
+  captures the pointer on `pointerdown` (`setPointerCapture`, routing every
+  subsequent pointer event to it regardless of what's under the cursor),
+  and on release does a manual `getBoundingClientRect()` hit-test against
+  each row to find the drop target. No native drag APIs involved, so
+  nothing for RNW's responder system to intercept.
+
 ## [0.6.1] - 2026-09-13
 
 ### Fixed
