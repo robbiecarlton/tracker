@@ -68,6 +68,8 @@ export function HabitCard({
   onChanged,
   onDragHandleLongPress,
   dragHandleRef,
+  contentCollapsed = false,
+  onToggleContentCollapsed,
 }: {
   habit: ApiHabit;
   /** The user's full habit list — needed so a habit with subhabits rolls up
@@ -88,6 +90,14 @@ export function HabitCard({
    * imperatively (see `(app)/index.tsx`). No-op type on native — the ref
    * is just never read there. */
   dragHandleRef?: (node: unknown) => void;
+  /** When true, only the drag handle, name, and the collapse toggle itself
+   * render — tiles/heatmap/actions/Edit/+Subhabit are hidden. Independent
+   * of whether this habit's *subhabits* are showing (the dashboard's
+   * separate `collapsed` state) — this is for "just show me the children,
+   * not this habit's own aggregate." */
+  contentCollapsed?: boolean;
+  /** Undefined = no collapse toggle rendered at all. */
+  onToggleContentCollapsed?: () => void;
 }) {
   const router = useRouter();
   const [logging, setLogging] = useState(false);
@@ -106,22 +116,56 @@ export function HabitCard({
     }
   }
 
+  const dragHandle =
+    onDragHandleLongPress || dragHandleRef ? (
+      <Pressable
+        ref={dragHandleRef}
+        accessibilityRole="button"
+        accessibilityLabel="Drag to reorder"
+        onLongPress={onDragHandleLongPress}
+        hitSlop={8}
+        style={styles.dragHandle}
+      >
+        <Text style={styles.dragHandleText}>⠿</Text>
+      </Pressable>
+    ) : null;
+
+  const collapseToggle = onToggleContentCollapsed ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={contentCollapsed ? "Show habit details" : "Hide habit details"}
+      onPress={onToggleContentCollapsed}
+      hitSlop={8}
+      style={styles.collapseToggle}
+    >
+      {/* A true vertical mirror pair (unlike the previous ⌄/⌃, which read
+          as two unrelated glyphs in most fonts, not a flip of each other). */}
+      <Text style={styles.collapseToggleText}>{contentCollapsed ? "▾" : "▴"}</Text>
+    </Pressable>
+  ) : null;
+
+  if (contentCollapsed) {
+    return (
+      <View style={styles.card}>
+        <View style={styles.header}>
+          {dragHandle}
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{habit.name}</Text>
+            {collapseToggle}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        {onDragHandleLongPress || dragHandleRef ? (
-          <Pressable
-            ref={dragHandleRef}
-            accessibilityRole="button"
-            accessibilityLabel="Drag to reorder"
-            onLongPress={onDragHandleLongPress}
-            hitSlop={8}
-            style={styles.dragHandle}
-          >
-            <Text style={styles.dragHandleText}>⠿</Text>
-          </Pressable>
-        ) : null}
-        <Text style={styles.name}>{habit.name}</Text>
+        {dragHandle}
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>{habit.name}</Text>
+          {collapseToggle}
+        </View>
         <View style={styles.headerLinks}>
           <Pressable
             accessibilityRole="button"
@@ -208,18 +252,26 @@ export function HabitCard({
 }
 
 const styles = StyleSheet.create({
+  // No border/padding of its own — `HabitCard` is only ever rendered
+  // inside `(app)/index.tsx`'s `nodeBox`, which already provides both
+  // (and needs to be the *only* box, since it also wraps this habit's
+  // nested subhabits — giving this its own identical border/padding too
+  // produced a visible double ring around every node).
   card: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 14,
-    padding: 14,
     gap: 12,
   },
   header: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   dragHandle: { paddingVertical: 2, paddingHorizontal: 2 },
   dragHandleText: { fontSize: 18, color: theme.colors.text.faint, lineHeight: 20 },
-  headerLinks: { alignItems: "flex-end", gap: 4 },
-  name: { flex: 1, fontSize: 17, fontWeight: "700", color: theme.colors.text.primary },
+  // The toggle sits directly beside the name (padding, not right-aligned) —
+  // this row only takes as much width as name+toggle need, so
+  // `headerLinks` (pushed via marginLeft: "auto") ends up flush right,
+  // matching how it looked before the toggle existed.
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
+  collapseToggle: { paddingVertical: 2, paddingHorizontal: 2 },
+  collapseToggleText: { fontSize: 19, color: theme.colors.text.muted, lineHeight: 22 },
+  headerLinks: { alignItems: "flex-end", gap: 4, marginLeft: "auto" },
+  name: { fontSize: 17, fontWeight: "700", color: theme.colors.text.primary },
   editLink: { color: theme.colors.brand, fontWeight: "600", fontSize: 14 },
   addSubhabitLink: { color: theme.colors.text.muted, fontSize: 13 },
   tiles: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

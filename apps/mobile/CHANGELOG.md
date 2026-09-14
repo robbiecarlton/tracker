@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-14
+
+### Changed
+
+- Subhabits now render *nested inside their parent's own bordered box*,
+  arbitrarily deep, instead of just indented alongside it — the border
+  visually contains them. Required switching the dashboard from one flat
+  list over a depth-annotated array to genuinely recursive rendering (a
+  `habitNode`/`siblingGroup` pair of plain functions — not JSX components,
+  since defining a component inside another component's render and using
+  it as `<Component/>` would make React remount the whole tree on every
+  state change; see the code comment). Drag-to-reorder now happens one
+  nesting level at a time: web's hand-rolled Pointer Events logic needed no
+  changes (each `siblingGroup` call already scopes its own hit-testing to
+  just its own rendered siblings); native switches from a single
+  `DraggableFlatList` to `react-native-draggable-flatlist`'s own
+  `NestableScrollContainer`/`NestableDraggableFlatList` — its
+  purpose-built solution for a draggable list inside another draggable
+  list's row, nested arbitrarily. `HabitCard`'s own `card` style lost its
+  border/padding in the process — it's only ever rendered inside the new
+  wrapping box now, and keeping both drew two concentric borders around
+  every node instead of one.
+- Both collapse/expand arrows (content-collapse's ▴/▾, and the
+  subhabit-count toggle's ▸/▾, split out from its "N subhabits" label into
+  its own larger-sized `Text` so only the arrow grows) are a bit bigger,
+  and the subhabit-count toggle sits a little further below a habit's own
+  controls than the uniform box gap alone gave it.
+
+### Added
+
+- A collapse toggle ("▴"/"▾", a true mirrored pair) directly beside each
+  habit's name (with a little padding, not pushed flush right),
+  independent of the existing subhabit-expand control below the card:
+  collapsing it hides that habit's own tiles/heatmap/actions/Edit/+Subhabit
+  links, leaving only the drag handle, name, and the toggle itself — while
+  its subhabits keep showing underneath, unaffected. Lets you see just a
+  parent's children without its own aggregate taking up space. Persisted
+  locally (`lib/expanded-habits.ts`'s new `getCollapsedContentHabitIds`/
+  `setCollapsedContentHabitIds`, alongside the existing subhabit-collapse
+  storage), not synced across devices — same as the existing
+  expand/collapse state.
+
+### Fixed
+
+- The "N subhabits" count below a habit card only counted its *direct*
+  children, not grandchildren and below. Now counts every non-archived
+  descendant, matching what actually appears when expanded.
+
 ## [0.6.5] - 2026-09-14
 
 ### Fixed
