@@ -164,9 +164,9 @@ export default function Dashboard() {
             onPress={() => toggleCollapsed(habit.id)}
             style={styles.expandToggle}
           >
+            <Text style={styles.expandToggleArrow}>{childrenHidden ? "▸" : "▾"}</Text>
             <Text style={styles.expandToggleText}>
-              {childrenHidden ? "▸" : "▾"} {descendantCount}{" "}
-              {descendantCount === 1 ? "subhabit" : "subhabits"}
+              {descendantCount} {descendantCount === 1 ? "subhabit" : "subhabits"}
             </Text>
           </Pressable>
         ) : null}
@@ -377,7 +377,18 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   nodeBoxActive: { opacity: 0.85 },
-  expandToggle: { paddingVertical: 4, paddingHorizontal: 4 },
+  expandToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    // A little extra breathing room above, on top of nodeBox's own gap —
+    // separating this from the habit's own controls/tiles above it a bit
+    // more than the uniform gap alone did.
+    marginTop: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+  },
+  expandToggleArrow: { color: theme.colors.text.muted, fontSize: 17, lineHeight: 19 },
   expandToggleText: { color: theme.colors.text.muted, fontSize: 13, fontWeight: "600" },
   signOut: { alignItems: "center", paddingVertical: 16 },
   signOutText: { color: theme.colors.text.muted, fontSize: 14 },

@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   // matching how it looked before the toggle existed.
   nameRow: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
   collapseToggle: { paddingVertical: 2, paddingHorizontal: 2 },
-  collapseToggleText: { fontSize: 15, color: theme.colors.text.muted, lineHeight: 18 },
+  collapseToggleText: { fontSize: 19, color: theme.colors.text.muted, lineHeight: 22 },
   headerLinks: { alignItems: "flex-end", gap: 4, marginLeft: "auto" },
   name: { fontSize: 17, fontWeight: "700", color: theme.colors.text.primary },
   editLink: { color: theme.colors.brand, fontWeight: "600", fontSize: 14 },

@@ -29,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   border/padding in the process — it's only ever rendered inside the new
   wrapping box now, and keeping both drew two concentric borders around
   every node instead of one.
+- Both collapse/expand arrows (content-collapse's ▴/▾, and the
+  subhabit-count toggle's ▸/▾, split out from its "N subhabits" label into
+  its own larger-sized `Text` so only the arrow grows) are a bit bigger,
+  and the subhabit-count toggle sits a little further below a habit's own
+  controls than the uniform box gap alone gave it.
 
 ### Added
 
