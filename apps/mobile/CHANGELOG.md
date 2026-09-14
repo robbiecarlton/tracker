@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-14
+
+### Added
+
+- A collapse toggle ("⌃"/"⌄") next to each habit's name, independent of
+  the existing subhabit-expand control below the card: collapsing it hides
+  that habit's own tiles/heatmap/actions/Edit/+Subhabit links, leaving
+  only the drag handle, name, and the toggle itself — while its subhabits
+  keep showing underneath, unaffected. Lets you see just a parent's
+  children without its own aggregate taking up space. Persisted
+  locally (`lib/expanded-habits.ts`'s new `getCollapsedContentHabitIds`/
+  `setCollapsedContentHabitIds`, alongside the existing subhabit-collapse
+  storage), not synced across devices — same as the existing
+  expand/collapse state.
+
+### Fixed
+
+- The "N subhabits" count below a habit card only counted its *direct*
+  children, not grandchildren and below. Now counts every non-archived
+  descendant, matching what actually appears when expanded.
+
 ## [0.6.5] - 2026-09-14
 
 ### Fixed

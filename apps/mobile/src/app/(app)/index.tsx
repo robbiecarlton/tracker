@@ -1,4 +1,4 @@
-import { buildDashboardRows, childrenOf } from "@tracker/core";
+import { buildDashboardRows, getDescendants } from "@tracker/core";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, View } from "react-native";
@@ -13,7 +13,12 @@ import { HabitCard } from "@/components/HabitCard";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHabits } from "@/hooks/useHabits";
 import { signOut } from "@/lib/auth";
-import { getCollapsedHabitIds, setCollapsedHabitIds } from "@/lib/expanded-habits";
+import {
+  getCollapsedContentHabitIds,
+  getCollapsedHabitIds,
+  setCollapsedContentHabitIds,
+  setCollapsedHabitIds,
+} from "@/lib/expanded-habits";
 import { theme } from "@/lib/theme";
 import { createWebDragGhost } from "@/lib/web-drag-ghost";
 
@@ -24,6 +29,11 @@ export default function Dashboard() {
   const { user } = useCurrentUser();
   const { habits: allHabits, loading, error, refetch, setHabits } = useHabits();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // Separate from `collapsed` above (which hides a habit's *subhabits*):
+  // this hides a habit's own tiles/heatmap/actions/Edit-links while
+  // leaving its subhabits showing — "just show me the children, not this
+  // one's own aggregate".
+  const [contentCollapsed, setContentCollapsed] = useState<Set<string>>(new Set());
   // Web drag-and-drop only — none of these need to trigger a render, so
   // they all live outside React state (see the block below `applyReorder`).
   const webDrag = useRef<{ habitId: string; pointerId: number } | null>(null);
@@ -49,6 +59,7 @@ export default function Dashboard() {
   // loaded once on mount, not on every focus.
   useEffect(() => {
     getCollapsedHabitIds().then(setCollapsed);
+    getCollapsedContentHabitIds().then(setContentCollapsed);
   }, []);
 
   function toggleCollapsed(habitId: string) {
@@ -57,6 +68,16 @@ export default function Dashboard() {
       if (next.has(habitId)) next.delete(habitId);
       else next.add(habitId);
       setCollapsedHabitIds(next);
+      return next;
+    });
+  }
+
+  function toggleContentCollapsed(habitId: string) {
+    setContentCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(habitId)) next.delete(habitId);
+      else next.add(habitId);
+      setCollapsedContentHabitIds(next);
       return next;
     });
   }
@@ -188,7 +209,12 @@ export default function Dashboard() {
       isActive?: boolean;
     },
   ) {
-    const childCount = childrenOf(item.habit.id, allHabits).filter((h) => !h.archivedAt).length;
+    // All descendants (grandchildren etc.), not just direct children — the
+    // label below reflects everything that'll appear when expanded, not
+    // just the immediate next level.
+    const childCount = getDescendants(item.habit.id, allHabits).filter(
+      (d) => !d.habit.archivedAt,
+    ).length;
     return (
       <View
         ref={opts.rowRef}
@@ -201,6 +227,8 @@ export default function Dashboard() {
           onChanged={refetch}
           onDragHandleLongPress={opts.onDragHandleLongPress}
           dragHandleRef={opts.dragHandleRef}
+          contentCollapsed={contentCollapsed.has(item.habit.id)}
+          onToggleContentCollapsed={() => toggleContentCollapsed(item.habit.id)}
         />
         {childCount > 0 ? (
           <Pressable

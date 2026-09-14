@@ -117,10 +117,15 @@ reparenting to a habit's own descendant is rejected (would create a cycle).
   - **Rehome** them under this habit's own parent habit (only offered when
     this habit itself has one — otherwise identical to promoting).
 - **Dashboard**: nothing is hidden by default — a parent habit renders
-  normally, followed by an expand/collapse control (default expanded) and
-  its visible subhabits indented directly beneath, each its own bordered
-  card, with an "Add subhabit" link to create one already parented here.
-  Collapse state is local-only (not synced across devices).
+  normally, followed by an expand/collapse control (default expanded,
+  counting every descendant, not just direct children) and its visible
+  subhabits indented directly beneath, each its own bordered card, with an
+  "Add subhabit" link to create one already parented here. A second,
+  independent toggle next to a habit's name collapses *that habit's own*
+  tiles/heatmap/actions (keeping just its drag handle, name, and the
+  toggle) while its subhabits keep showing underneath — "just show me the
+  children." Both collapse states are local-only (not synced across
+  devices).
 - **Log list**: defaults to showing a habit's own logs plus every
   descendant's (labeled with its source habit), with a filter to narrow to
   just this habit's own.

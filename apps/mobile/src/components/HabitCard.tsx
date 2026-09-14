@@ -68,6 +68,8 @@ export function HabitCard({
   onChanged,
   onDragHandleLongPress,
   dragHandleRef,
+  contentCollapsed = false,
+  onToggleContentCollapsed,
 }: {
   habit: ApiHabit;
   /** The user's full habit list — needed so a habit with subhabits rolls up
@@ -88,6 +90,14 @@ export function HabitCard({
    * imperatively (see `(app)/index.tsx`). No-op type on native — the ref
    * is just never read there. */
   dragHandleRef?: (node: unknown) => void;
+  /** When true, only the drag handle, name, and the collapse toggle itself
+   * render — tiles/heatmap/actions/Edit/+Subhabit are hidden. Independent
+   * of whether this habit's *subhabits* are showing (the dashboard's
+   * separate `collapsed` state) — this is for "just show me the children,
+   * not this habit's own aggregate." */
+  contentCollapsed?: boolean;
+  /** Undefined = no collapse toggle rendered at all. */
+  onToggleContentCollapsed?: () => void;
 }) {
   const router = useRouter();
   const [logging, setLogging] = useState(false);
@@ -106,22 +116,50 @@ export function HabitCard({
     }
   }
 
+  const dragHandle =
+    onDragHandleLongPress || dragHandleRef ? (
+      <Pressable
+        ref={dragHandleRef}
+        accessibilityRole="button"
+        accessibilityLabel="Drag to reorder"
+        onLongPress={onDragHandleLongPress}
+        hitSlop={8}
+        style={styles.dragHandle}
+      >
+        <Text style={styles.dragHandleText}>⠿</Text>
+      </Pressable>
+    ) : null;
+
+  const collapseToggle = onToggleContentCollapsed ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={contentCollapsed ? "Show habit details" : "Hide habit details"}
+      onPress={onToggleContentCollapsed}
+      hitSlop={8}
+      style={styles.collapseToggle}
+    >
+      <Text style={styles.collapseToggleText}>{contentCollapsed ? "⌄" : "⌃"}</Text>
+    </Pressable>
+  ) : null;
+
+  if (contentCollapsed) {
+    return (
+      <View style={styles.card}>
+        <View style={styles.header}>
+          {dragHandle}
+          <Text style={styles.name}>{habit.name}</Text>
+          {collapseToggle}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        {onDragHandleLongPress || dragHandleRef ? (
-          <Pressable
-            ref={dragHandleRef}
-            accessibilityRole="button"
-            accessibilityLabel="Drag to reorder"
-            onLongPress={onDragHandleLongPress}
-            hitSlop={8}
-            style={styles.dragHandle}
-          >
-            <Text style={styles.dragHandleText}>⠿</Text>
-          </Pressable>
-        ) : null}
+        {dragHandle}
         <Text style={styles.name}>{habit.name}</Text>
+        {collapseToggle}
         <View style={styles.headerLinks}>
           <Pressable
             accessibilityRole="button"
@@ -218,6 +256,8 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   dragHandle: { paddingVertical: 2, paddingHorizontal: 2 },
   dragHandleText: { fontSize: 18, color: theme.colors.text.faint, lineHeight: 20 },
+  collapseToggle: { paddingVertical: 2, paddingHorizontal: 4 },
+  collapseToggleText: { fontSize: 15, color: theme.colors.text.muted, lineHeight: 18 },
   headerLinks: { alignItems: "flex-end", gap: 4 },
   name: { flex: 1, fontSize: 17, fontWeight: "700", color: theme.colors.text.primary },
   editLink: { color: theme.colors.brand, fontWeight: "600", fontSize: 14 },

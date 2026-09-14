@@ -9,6 +9,14 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-09-14 — Per-habit collapse toggle; subhabit count fix
+
+**`@tracker/mobile` 0.7.0**: a new collapse toggle next to each habit's
+name hides just that habit's own tiles/heatmap/actions (keeping the drag
+handle, name, and toggle visible) while leaving its subhabits showing —
+for "just show me the children." Also fixed: the "N subhabits" label only
+ever counted direct children, not grandchildren and below.
+
 ## 2026-09-14 — Fix web drag-to-reorder and scroll
 
 **`@tracker/mobile` 0.6.1 → 0.6.2**: `react-native-draggable-flatlist`
