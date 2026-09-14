@@ -41,6 +41,11 @@ after the target when dragging down, before when dragging up.
 "ghost" chip (drag handle + habit name) that follows the pointer while
 dragging, matching native's own lift/scale effect.
 
+**`@tracker/mobile` 0.6.5**: that ghost's text used the browser's default
+sans-serif instead of the app's actual font (it's raw DOM, not a real RN
+`<Text>`, so it never inherited react-native-web's default font stack).
+Now sets it explicitly to match.
+
 ## 2026-09-12 — Custom sort order + heatmap view
 
 Habits can now be dragged into whatever order you like (top-level, or

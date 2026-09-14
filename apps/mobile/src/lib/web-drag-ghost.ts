@@ -1,6 +1,18 @@
 import { theme } from "./theme";
 
 /**
+ * react-native-web's default text font stack (confirmed against a built
+ * web export's actual computed style — RNW doesn't expose this as an
+ * importable constant). Every RN `<Text>` on this app inherits it since
+ * nothing sets a custom `fontFamily` (no `expo-font` usage anywhere) — the
+ * ghost is raw DOM, not a `<Text>`, so it needs this set explicitly to
+ * actually match rather than falling back to the browser's own default
+ * sans-serif.
+ */
+const RNW_DEFAULT_FONT_FAMILY =
+  '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+
+/**
  * A small floating "ghost" chip (drag handle glyph + habit name) that
  * follows the pointer during web drag-to-reorder — see `(app)/index.tsx`'s
  * `registerWebDragHandle`. Pure DOM, not a React component: it needs to
@@ -36,6 +48,7 @@ export function createWebDragGhost(): {
       border: `1px solid ${theme.colors.border}`,
       backgroundColor: theme.colors.background,
       boxShadow: "0 6px 16px rgba(0,0,0,0.18)",
+      fontFamily: RNW_DEFAULT_FONT_FAMILY,
     });
 
     const handle = document.createElement("span");

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-09-14
+
+### Fixed
+
+- The web drag ghost's text used the browser's default sans-serif instead
+  of the app's actual font — it's raw DOM, not a real RN `<Text>`, so it
+  never inherited react-native-web's default font stack the way everything
+  else on the page does. Now sets it explicitly
+  (`-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,
+  sans-serif`, confirmed against a built web export's actual computed
+  style).
+
 ## [0.6.4] - 2026-09-14
 
 ### Added
