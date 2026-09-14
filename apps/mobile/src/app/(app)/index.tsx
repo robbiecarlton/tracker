@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     // A little extra breathing room above, on top of nodeBox's own gap —
     // separating this from the habit's own controls/tiles above it a bit
     // more than the uniform gap alone did.
-    marginTop: 4,
+    marginTop: 10,
     paddingVertical: 4,
     paddingHorizontal: 4,
   },
