@@ -9,13 +9,19 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## 2026-09-14 — Per-habit collapse toggle; subhabit count fix
+## 2026-09-14 — Per-habit collapse toggle; nested dashboard boxes
 
-**`@tracker/mobile` 0.7.0**: a new collapse toggle next to each habit's
-name hides just that habit's own tiles/heatmap/actions (keeping the drag
-handle, name, and toggle visible) while leaving its subhabits showing —
-for "just show me the children." Also fixed: the "N subhabits" label only
-ever counted direct children, not grandchildren and below.
+**`@tracker/mobile` 0.8.0**: a new collapse toggle ("▴"/"▾") beside each
+habit's name hides just that habit's own tiles/heatmap/actions (keeping
+the drag handle, name, and toggle visible) while leaving its subhabits
+showing — for "just show me the children." Subhabits now render nested
+*inside their parent's own bordered box*, arbitrarily deep, instead of
+just indented alongside it — required switching the dashboard to
+genuinely recursive rendering, and native's drag-to-reorder to
+`react-native-draggable-flatlist`'s nested-list components (web's
+hand-rolled Pointer Events logic needed no changes). Also fixed: the "N
+subhabits" label only ever counted direct children, not grandchildren and
+below.
 
 ## 2026-09-14 — Fix web drag-to-reorder and scroll
 

@@ -138,7 +138,9 @@ export function HabitCard({
       hitSlop={8}
       style={styles.collapseToggle}
     >
-      <Text style={styles.collapseToggleText}>{contentCollapsed ? "⌄" : "⌃"}</Text>
+      {/* A true vertical mirror pair (unlike the previous ⌄/⌃, which read
+          as two unrelated glyphs in most fonts, not a flip of each other). */}
+      <Text style={styles.collapseToggleText}>{contentCollapsed ? "▾" : "▴"}</Text>
     </Pressable>
   ) : null;
 
@@ -147,8 +149,10 @@ export function HabitCard({
       <View style={styles.card}>
         <View style={styles.header}>
           {dragHandle}
-          <Text style={styles.name}>{habit.name}</Text>
-          {collapseToggle}
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{habit.name}</Text>
+            {collapseToggle}
+          </View>
         </View>
       </View>
     );
@@ -158,8 +162,10 @@ export function HabitCard({
     <View style={styles.card}>
       <View style={styles.header}>
         {dragHandle}
-        <Text style={styles.name}>{habit.name}</Text>
-        {collapseToggle}
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>{habit.name}</Text>
+          {collapseToggle}
+        </View>
         <View style={styles.headerLinks}>
           <Pressable
             accessibilityRole="button"
@@ -256,10 +262,15 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   dragHandle: { paddingVertical: 2, paddingHorizontal: 2 },
   dragHandleText: { fontSize: 18, color: theme.colors.text.faint, lineHeight: 20 },
-  collapseToggle: { paddingVertical: 2, paddingHorizontal: 4 },
+  // The toggle sits directly beside the name (padding, not right-aligned) —
+  // this row only takes as much width as name+toggle need, so
+  // `headerLinks` (pushed via marginLeft: "auto") ends up flush right,
+  // matching how it looked before the toggle existed.
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
+  collapseToggle: { paddingVertical: 2, paddingHorizontal: 2 },
   collapseToggleText: { fontSize: 15, color: theme.colors.text.muted, lineHeight: 18 },
-  headerLinks: { alignItems: "flex-end", gap: 4 },
-  name: { flex: 1, fontSize: 17, fontWeight: "700", color: theme.colors.text.primary },
+  headerLinks: { alignItems: "flex-end", gap: 4, marginLeft: "auto" },
+  name: { fontSize: 17, fontWeight: "700", color: theme.colors.text.primary },
   editLink: { color: theme.colors.brand, fontWeight: "600", fontSize: 14 },
   addSubhabitLink: { color: theme.colors.text.muted, fontSize: 13 },
   tiles: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
