@@ -1,15 +1,21 @@
 import { useRouter } from "expo-router";
 import { useState, type ReactNode } from "react";
 import { BackButton, Field, FormError, PrimaryButton, Screen, Title } from "@/components/ui";
-import { parseLogTimestampInput } from "@/lib/date-format";
+import { formatLogTimestampInput, parseLogTimestampInput } from "@/lib/date-format";
 
 /**
  * Shared create/edit form for a log — merges what used to be two separate
  * flows ("log with notes" and "add a past log"): both are "create a log with
  * optional notes and optional custom timestamp." `requireTimestamp` is the
- * one behavioral difference: a create leaves it blank to mean "now"
- * (matching `createLogSchema`); an edit always requires an explicit value
- * (matching `updateLogSchema` — no "now" fallback once a log exists).
+ * one behavioral difference: a create defaults the field to *now* but the
+ * field can still be cleared to mean "now at submit time" (matching
+ * `createLogSchema`); an edit always requires an explicit value (matching
+ * `updateLogSchema` — no "now" fallback once a log exists).
+ *
+ * The create default is deliberately the form-open time, not submit time:
+ * the user is almost always logging something that just happened, so the
+ * moment they started filling out the form is a better guess than whenever
+ * they get around to hitting submit.
  */
 export function LogForm({
   initialTimestampInput = "",
@@ -33,7 +39,11 @@ export function LogForm({
   footer?: ReactNode;
 }) {
   const router = useRouter();
-  const [timestampInput, setTimestampInput] = useState(initialTimestampInput);
+  const [timestampInput, setTimestampInput] = useState(
+    () =>
+      initialTimestampInput ||
+      (requireTimestamp ? "" : formatLogTimestampInput(new Date().toISOString(), timeZone)),
+  );
   const [notes, setNotes] = useState(initialNotes);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string>();
@@ -69,11 +79,7 @@ export function LogForm({
       <BackButton onPress={() => router.back()} />
       <Title>{submitLabel === "Save" ? "Edit log" : "Add log"}</Title>
       <Field
-        label={
-          requireTimestamp
-            ? "Date & time (YYYY-MM-DD HH:mm)"
-            : "Date & time (YYYY-MM-DD HH:mm) — blank means now"
-        }
+        label="Date & time (YYYY-MM-DD HH:mm)"
         value={timestampInput}
         onChangeText={setTimestampInput}
         error={errors.timestamp}
