@@ -21,6 +21,8 @@ export const targetTypeSchema = z.enum(["at_least", "at_most", "exactly"]);
 
 export const unitSchema = z.enum(UNITS);
 
+export const heatmapPolaritySchema = z.enum(["positive", "neutral", "negative"]);
+
 export const habitViewInputSchema = z
   .object({
     kind: viewKindSchema,
@@ -33,6 +35,8 @@ export const habitViewInputSchema = z
     /** `days` / `percentage` views only: optional target and its direction. */
     target: z.number().optional(),
     targetType: targetTypeSchema.optional(),
+    /** `heatmap` view only: cell color. Defaults to "neutral". */
+    heatmapPolarity: heatmapPolaritySchema.optional(),
   })
   .superRefine((view, ctx) => {
     if ((view.target == null) !== (view.targetType == null)) {
@@ -68,6 +72,13 @@ export const habitViewInputSchema = z
         code: "custom",
         message: "Heatmap's box size is Day, Week, or Month — not Hour",
         path: ["unit"],
+      });
+    }
+    if (view.heatmapPolarity != null && view.kind !== "heatmap") {
+      ctx.addIssue({
+        code: "custom",
+        message: "heatmapPolarity only applies to the Heatmap view",
+        path: ["heatmapPolarity"],
       });
     }
   });

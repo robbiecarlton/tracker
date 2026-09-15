@@ -34,5 +34,17 @@ export const theme = {
       background: "#eceef1",
       text: "#5f6368",
     },
+    /**
+     * Heatmap cell color by `HeatmapPolarity` (`@tracker/core`) — `neutral`
+     * mirrors `brand` (the original look, no value judgment on logging
+     * more); `positive`/`negative` reuse the same green/red as
+     * `highlight.ts`'s target-performance stops, so a heatmap's color
+     * language matches the rest of the app's "more is good/bad" signal.
+     */
+    heatmapPolarity: {
+      neutral: "#208AEF",
+      positive: "#16a34a",
+      negative: "#dc2626",
+    },
   },
 } as const;

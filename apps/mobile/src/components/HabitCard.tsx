@@ -240,7 +240,7 @@ export function HabitCard({
           return (
             <View key={view.id} style={styles.heatmapSection}>
               <Text style={styles.heatmapLabel}>{heatmapUnitLabel(result.unit)}</Text>
-              <Heatmap result={result} />
+              <Heatmap result={result} polarity={view.heatmapPolarity} />
             </View>
           );
         })}

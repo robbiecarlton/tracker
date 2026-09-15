@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-14
+
+### Added
+
+- The Heatmap view can now pick a cell color: Positive (green), Neutral
+  (the original blue — default), or Negative (red), via a new "Color"
+  chip row on the habit form (shown only for Heatmap views).
+
 ## [0.9.0] - 2026-09-14
 
 ### Added

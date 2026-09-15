@@ -1,9 +1,11 @@
 import {
   childrenOf,
+  DEFAULT_HEATMAP_POLARITY,
   habitFormSchema,
   UNITS,
   type HabitFormInput,
   type HabitViewInput,
+  type HeatmapPolarity,
   type TargetType,
   type Unit,
   type ViewKind,
@@ -30,6 +32,12 @@ const TARGET_TYPE_LABELS: Record<TargetType, string> = {
   at_most: "At most",
   exactly: "Exactly",
 };
+const HEATMAP_POLARITIES: HeatmapPolarity[] = ["neutral", "positive", "negative"];
+const HEATMAP_POLARITY_LABELS: Record<HeatmapPolarity, string> = {
+  neutral: "Neutral",
+  positive: "Positive",
+  negative: "Negative",
+};
 
 /** One editable view row's local state — numeric fields as text for the input. */
 interface ViewRow {
@@ -40,6 +48,7 @@ interface ViewRow {
   cumulationGoal: string;
   target: string;
   targetType: TargetType | undefined;
+  heatmapPolarity: HeatmapPolarity;
 }
 
 let nextRowKey = 0;
@@ -55,6 +64,7 @@ export function rowFromView(view: {
   cumulationGoal?: number;
   target?: number;
   targetType?: TargetType;
+  heatmapPolarity?: HeatmapPolarity;
 }): ViewRow {
   return {
     key: freshKey(),
@@ -64,6 +74,7 @@ export function rowFromView(view: {
     cumulationGoal: view.cumulationGoal != null ? String(view.cumulationGoal) : "",
     target: view.target != null ? String(view.target) : "",
     targetType: view.targetType,
+    heatmapPolarity: view.heatmapPolarity ?? DEFAULT_HEATMAP_POLARITY,
   };
 }
 
@@ -79,6 +90,7 @@ function rowToInput(row: ViewRow): HabitViewInput {
     cumulationGoal,
     target: hasTarget ? Number(row.target) : undefined,
     targetType: hasTarget ? row.targetType : undefined,
+    heatmapPolarity: row.kind === "heatmap" ? row.heatmapPolarity : undefined,
   };
 }
 
@@ -132,6 +144,18 @@ function ViewRowEditor({
             options={row.kind === "heatmap" ? HEATMAP_UNITS : UNITS}
             value={row.unit}
             onChange={(unit) => onChange({ unit })}
+          />
+        </View>
+      ) : null}
+
+      {row.kind === "heatmap" ? (
+        <View style={styles.subField}>
+          <Text style={styles.subLabel}>Color</Text>
+          <ChipRow
+            options={HEATMAP_POLARITIES}
+            value={row.heatmapPolarity}
+            onChange={(heatmapPolarity) => onChange({ heatmapPolarity })}
+            labels={HEATMAP_POLARITY_LABELS}
           />
         </View>
       ) : null}

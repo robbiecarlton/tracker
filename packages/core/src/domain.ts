@@ -12,6 +12,18 @@ export type ViewKind = "cumulative" | "streak" | "percentage" | "days" | "since"
 /** Direction of an optional target on `days` / `percentage` views. */
 export type TargetType = "at_least" | "at_most" | "exactly";
 
+/**
+ * `heatmap` views only: which way logging activity "should" trend, purely
+ * for cell color — `positive` (more is good, green), `negative` (more is
+ * bad, red), or the original `neutral` blue with no value judgment either
+ * way. Doesn't affect `computeHeatmap`'s counts, only how mobile renders
+ * them (`components/Heatmap.tsx`).
+ */
+export type HeatmapPolarity = "positive" | "neutral" | "negative";
+
+/** A heatmap view with no explicit `heatmapPolarity` renders as this. */
+export const DEFAULT_HEATMAP_POLARITY: HeatmapPolarity = "neutral";
+
 export interface HabitView {
   id: string;
   habitId: string;
@@ -30,6 +42,8 @@ export interface HabitView {
   /** `days` / `percentage` views: optional target and its direction. */
   target?: number;
   targetType?: TargetType;
+  /** `heatmap` view only. Defaults to `DEFAULT_HEATMAP_POLARITY` ("neutral"). */
+  heatmapPolarity?: HeatmapPolarity;
   createdAt: string;
   updatedAt: string;
 }

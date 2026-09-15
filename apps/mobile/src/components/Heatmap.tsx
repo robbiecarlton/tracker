@@ -1,4 +1,4 @@
-import type { HeatmapResult } from "@tracker/core";
+import { DEFAULT_HEATMAP_POLARITY, type HeatmapPolarity, type HeatmapResult } from "@tracker/core";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { theme } from "@/lib/theme";
 
@@ -14,19 +14,20 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
 
 /**
  * Cell color: neutral gray at 0 logs, else one of 4 increasingly-opaque
- * steps of the app's brand blue, scaled by this bucket's count relative to
- * the busiest bucket shown — a relative scale (not fixed thresholds) so it
- * reads sensibly whether a habit gets logged once or a dozen times a unit.
+ * steps of `polarity`'s base color (`theme.colors.heatmapPolarity`),
+ * scaled by this bucket's count relative to the busiest bucket shown — a
+ * relative scale (not fixed thresholds) so it reads sensibly whether a
+ * habit gets logged once or a dozen times a unit.
  */
-function cellColor(count: number, max: number): string {
+function cellColor(count: number, max: number, polarity: HeatmapPolarity): string {
   if (count === 0) return theme.colors.badge.background;
   const ratio = count / max;
   const alpha = ratio <= 0.25 ? "40" : ratio <= 0.5 ? "80" : ratio <= 0.75 ? "bf" : "ff";
-  return `${theme.colors.brand}${alpha}`;
+  return `${theme.colors.heatmapPolarity[polarity]}${alpha}`;
 }
 
-function Cell({ count, max }: { count: number; max: number }) {
-  return <View style={[styles.cell, { backgroundColor: cellColor(count, max) }]} />;
+function Cell({ count, max, polarity }: { count: number; max: number; polarity: HeatmapPolarity }) {
+  return <View style={[styles.cell, { backgroundColor: cellColor(count, max, polarity) }]} />;
 }
 
 /**
@@ -36,7 +37,13 @@ function Cell({ count, max }: { count: number; max: number }) {
  * meaningful day-of-week alignment, so they just wrap a fixed number of
  * cells per row.
  */
-export function Heatmap({ result }: { result: HeatmapResult }) {
+export function Heatmap({
+  result,
+  polarity = DEFAULT_HEATMAP_POLARITY,
+}: {
+  result: HeatmapResult;
+  polarity?: HeatmapPolarity;
+}) {
   const max = Math.max(1, ...result.buckets.map((b) => b.count));
 
   if (result.unit === "day") {
@@ -47,7 +54,7 @@ export function Heatmap({ result }: { result: HeatmapResult }) {
           {columns.map((week, i) => (
             <View key={i} style={styles.dayColumn}>
               {week.map((bucket) => (
-                <Cell key={bucket.start} count={bucket.count} max={max} />
+                <Cell key={bucket.start} count={bucket.count} max={max} polarity={polarity} />
               ))}
             </View>
           ))}
@@ -63,7 +70,7 @@ export function Heatmap({ result }: { result: HeatmapResult }) {
       {rows.map((row, i) => (
         <View key={i} style={styles.wrapRow}>
           {row.map((bucket) => (
-            <Cell key={bucket.start} count={bucket.count} max={max} />
+            <Cell key={bucket.start} count={bucket.count} max={max} polarity={polarity} />
           ))}
         </View>
       ))}

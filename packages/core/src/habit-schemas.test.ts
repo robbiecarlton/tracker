@@ -64,6 +64,25 @@ describe("habitViewInputSchema", () => {
       false,
     );
   });
+
+  it("accepts positive/neutral/negative as a heatmap's polarity, and omitted (defaults later)", () => {
+    expect(
+      habitViewInputSchema.safeParse({ kind: "heatmap", heatmapPolarity: "positive" }).success,
+    ).toBe(true);
+    expect(
+      habitViewInputSchema.safeParse({ kind: "heatmap", heatmapPolarity: "neutral" }).success,
+    ).toBe(true);
+    expect(
+      habitViewInputSchema.safeParse({ kind: "heatmap", heatmapPolarity: "negative" }).success,
+    ).toBe(true);
+    expect(habitViewInputSchema.safeParse({ kind: "heatmap" }).success).toBe(true);
+  });
+
+  it("rejects heatmapPolarity on a non-heatmap view", () => {
+    expect(
+      habitViewInputSchema.safeParse({ kind: "cumulative", heatmapPolarity: "positive" }).success,
+    ).toBe(false);
+  });
 });
 
 describe("habitFormSchema", () => {

@@ -9,6 +9,20 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-09-14 — Heatmap cell color (positive/neutral/negative)
+
+**`@tracker/core` 0.9.0**: `HabitView.heatmapPolarity` (`positive` |
+`neutral` | `negative`, defaults to `neutral`) — heatmap views only, purely
+a display concern.
+
+**`@tracker/backend` 0.6.0**: `habit_view.heatmap_polarity` (migration
+`0006`), persisted and returned verbatim.
+
+**`@tracker/mobile` 0.10.0**: a new "Color" chip row on the habit form for
+Heatmap views (Positive/Neutral/Negative), and the heatmap grid itself now
+renders in green/blue/red accordingly instead of always the app's brand
+blue.
+
 ## 2026-09-14 — Fuzzy habit search; alternating nested-box backgrounds
 
 **`@tracker/core` 0.8.0**: `fuzzySubsequenceMatch` (case-insensitive,
