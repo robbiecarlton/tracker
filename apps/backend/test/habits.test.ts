@@ -29,7 +29,14 @@ export interface HabitJson {
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
-  views: { id: string; kind: string; unit?: string; target?: number; targetType?: string }[];
+  views: {
+    id: string;
+    kind: string;
+    unit?: string;
+    target?: number;
+    targetType?: string;
+    heatmapPolarity?: string;
+  }[];
   logs: {
     id: string;
     habitId: string;
@@ -199,6 +206,30 @@ describe("habits API", () => {
     });
   });
 
+  it("persists a heatmap view's polarity verbatim, and omits it (undefined) when not set", async () => {
+    const cookie = await signUpAndGetCookie(app, "heatmap-polarity");
+
+    const create = await app.inject({
+      method: "POST",
+      url: "/api/habits",
+      headers: { cookie, "content-type": "application/json" },
+      payload: JSON.stringify({
+        name: "Exercise",
+        startDate: "2026-01-01",
+        views: [
+          { kind: "heatmap", unit: "day", heatmapPolarity: "positive" },
+          { kind: "cumulative" },
+        ],
+      }),
+    });
+    expect(create.statusCode).toBe(201);
+    const habit = (create.json() as { habit: HabitJson }).habit;
+    const heatmapView = habit.views.find((v) => v.kind === "heatmap")!;
+    expect(heatmapView.heatmapPolarity).toBe("positive");
+    const cumulativeView = habit.views.find((v) => v.kind === "cumulative")!;
+    expect(cumulativeView.heatmapPolarity).toBeUndefined();
+  });
+
   it("rejects invalid payloads with 400", async () => {
     const cookie = await signUpAndGetCookie(app, "validation");
 
@@ -219,6 +250,11 @@ describe("habits API", () => {
         name: "X",
         startDate: "2026-01-01",
         views: [{ kind: "streak", cumulationGoal: 10 }], // cumulationGoal on non-cumulative
+      },
+      {
+        name: "X",
+        startDate: "2026-01-01",
+        views: [{ kind: "streak", heatmapPolarity: "positive" }], // heatmapPolarity on non-heatmap
       },
     ];
 

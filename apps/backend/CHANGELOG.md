@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-14
+
+### Added
+
+- `habit_view.heatmap_polarity` (migration `0006`) — persists a heatmap
+  view's chosen cell color (`positive`/`neutral`/`negative`); nullable,
+  defaults to "neutral" at read time.
+
 ## [0.5.1] - 2026-09-14
 
 ### Fixed

@@ -176,9 +176,12 @@ unit-bucket, color intensity scaled by that bucket's log count. Box size
   alignment.
 - **Color**: a relative intensity scale (not fixed absolute thresholds) —
   zero logs is neutral, otherwise scaled by that bucket's count against
-  the busiest bucket currently shown, in shades of the app's brand color
-  (not the red/orange/green target-highlight system — a heatmap has no
-  target).
+  the busiest bucket currently shown, in shades of one base color per the
+  view's `heatmapPolarity` — `neutral` (default) the app's brand blue, no
+  value judgment either way; `positive`, green, for a habit where logging
+  more is good; `negative`, red, for one where logging more is bad. Picked
+  per-view on the habit form, independent of the red/orange/green
+  Days/Percentage target-highlight system (a heatmap has no target).
 - Like every other view, a heatmap's counts include a habit's own logs
   plus every non-archived subhabit's (nested habits' rollup, above).
 

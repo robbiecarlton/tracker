@@ -136,6 +136,8 @@ export const habitView = pgTable(
     cumulationGoal: integer("cumulation_goal"),
     target: doublePrecision("target"),
     targetType: text("target_type"),
+    /** `heatmap` views only — see `HeatmapPolarity` in `@tracker/core`. */
+    heatmapPolarity: text("heatmap_polarity"),
     ...timestamps,
   },
   (t) => [index("habit_view_habit_id_idx").on(t.habitId)],

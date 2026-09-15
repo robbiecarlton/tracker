@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-14
+
+### Added
+
+- `HabitView.heatmapPolarity` (`positive` | `neutral` | `negative`,
+  defaulting to `neutral` — `DEFAULT_HEATMAP_POLARITY`), `heatmap` views
+  only. Purely a display concern (cell color) — doesn't affect
+  `computeHeatmap`'s counts.
+
 ## [0.8.0] - 2026-09-14
 
 ### Added

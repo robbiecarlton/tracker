@@ -592,6 +592,7 @@ async function insertHabitViews(
       cumulationGoal: v.cumulationGoal ?? null,
       target: v.target ?? null,
       targetType: v.targetType ?? null,
+      heatmapPolarity: v.heatmapPolarity ?? null,
       createdAt: now,
       updatedAt: now,
     })),
@@ -668,6 +669,7 @@ function toHabitView(row: typeof habitView.$inferSelect): HabitView {
     cumulationGoal: row.cumulationGoal ?? undefined,
     target: row.target ?? undefined,
     targetType: row.targetType as HabitView["targetType"],
+    heatmapPolarity: (row.heatmapPolarity as HabitView["heatmapPolarity"]) ?? undefined,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
