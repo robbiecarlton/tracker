@@ -9,6 +9,13 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-09-15 — Default "Add log" timestamp to now
+
+**`@tracker/mobile` 0.10.1**: the "Add log" form's date & time field now
+defaults to the current time instead of starting blank with only a format
+placeholder — still editable, and still falls back to "now at submit time"
+if cleared.
+
 ## 2026-09-14 — Heatmap cell color (positive/neutral/negative)
 
 **`@tracker/core` 0.9.0**: `HabitView.heatmapPolarity` (`positive` |

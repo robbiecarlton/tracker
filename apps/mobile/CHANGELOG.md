@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-09-15
+
+### Changed
+
+- The "Add log" form's date & time field now defaults to the current time
+  (still editable, and can still be cleared to fall back to "now at submit
+  time") instead of starting blank with only a format placeholder.
+
 ## [0.10.0] - 2026-09-14
 
 ### Added
