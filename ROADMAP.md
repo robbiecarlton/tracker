@@ -48,5 +48,3 @@ area with unarchive, filtered off the main dashboard.
 - EAS build, App Store assets and submission
 
 ## Other (don't do without user opt in) - 
-subhabit count should count all children, not just immediate.
-collabsible top layers

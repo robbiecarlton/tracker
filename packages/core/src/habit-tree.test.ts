@@ -5,6 +5,7 @@ import {
   buildDashboardRows,
   childrenOf,
   getDescendants,
+  searchHabits,
   wouldCreateCycle,
 } from "./habit-tree";
 
@@ -167,5 +168,66 @@ describe("buildDashboardRows", () => {
       new Set(),
     );
     expect(rows.map((r) => r.habit.id)).toEqual(["exercise"]);
+  });
+});
+
+describe("searchHabits", () => {
+  /**
+   * Tree matching the user's own worked example:
+   *   Be Healthy (top-level)
+   *     - Exercise
+   *       - Run
+   *       - Lift
+   *     - Sleep
+   *   Bad Habits (top-level, unrelated)
+   */
+  function healthTree(overrides: Partial<Record<string, Partial<Habit>>> = {}): Habit[] {
+    return [
+      habit("be-healthy", { name: "Be Healthy", ...overrides["be-healthy"] }),
+      habit("exercise", { name: "Exercise", parentId: "be-healthy", ...overrides.exercise }),
+      habit("run", { name: "Run", parentId: "exercise", ...overrides.run }),
+      habit("lift", { name: "Lift", parentId: "exercise", ...overrides.lift }),
+      habit("sleep", { name: "Sleep", parentId: "be-healthy", ...overrides.sleep }),
+      habit("bad-habits", { name: "Bad Habits", ...overrides["bad-habits"] }),
+    ];
+  }
+
+  it("matches a leaf habit by its full ancestor path, grouped under its own depth", () => {
+    const groups = searchHabits("heaerun", healthTree());
+    expect(groups).toHaveLength(1);
+    expect(groups.flat().map((m) => [m.habit.id, m.depth, m.ancestors.map((a) => a.id)])).toEqual(
+      [["run", 2, ["be-healthy", "exercise"]]],
+    );
+  });
+
+  it("doesn't force-include a non-matching sibling", () => {
+    // "run" doesn't match "Lift" or "Sleep" — only "Run" itself shows.
+    const groups = searchHabits("run", healthTree());
+    expect(groups.flat().map((m) => m.habit.id)).toEqual(["run"]);
+  });
+
+  it("groups matches by depth ascending, each group in normal tree order", () => {
+    // "e" matches every habit under "Be Healthy" (its own name already has
+    // one), but not "Bad Habits" (no "e" anywhere in that path) — depth 0
+    // comes first, then depth 1, then depth 2, each in tree order.
+    const groups = searchHabits("e", healthTree());
+    expect(groups.map((g) => g.map((m) => m.habit.id))).toEqual([
+      ["be-healthy"], // depth 0, tree order
+      ["exercise", "sleep"], // depth 1, tree order
+      ["run", "lift"], // depth 2, tree order
+    ]);
+  });
+
+  it("excludes an archived habit and its whole subtree", () => {
+    const groups = searchHabits(
+      "run",
+      healthTree({ exercise: { archivedAt: "2026-02-01T00:00:00Z" } }),
+    );
+    expect(groups).toEqual([]);
+  });
+
+  it("returns no groups for an empty or whitespace-only query", () => {
+    expect(searchHabits("", healthTree())).toEqual([]);
+    expect(searchHabits("   ", healthTree())).toEqual([]);
   });
 });

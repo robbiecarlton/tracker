@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import {
@@ -20,6 +21,7 @@ import {
 import { reorderHabits } from "@/api/habits";
 import type { ApiHabit } from "@/api/types";
 import { HabitCard } from "@/components/HabitCard";
+import { SearchResults } from "@/components/SearchResults";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHabits } from "@/hooks/useHabits";
 import { signOut } from "@/lib/auth";
@@ -29,6 +31,7 @@ import {
   setCollapsedContentHabitIds,
   setCollapsedHabitIds,
 } from "@/lib/expanded-habits";
+import { nodeBackgroundForDepth, nodeBoxStyles } from "@/lib/node-box";
 import { theme } from "@/lib/theme";
 import { createWebDragGhost } from "@/lib/web-drag-ghost";
 
@@ -42,6 +45,9 @@ export default function Dashboard() {
   // leaving its subhabits showing — "just show me the children, not this
   // one's own aggregate".
   const [contentCollapsed, setContentCollapsed] = useState<Set<string>>(new Set());
+  // Search box state — deliberately not persisted (AsyncStorage or
+  // otherwise): cleared on every blur below, and on every fresh mount.
+  const [query, setQuery] = useState("");
   // Web drag-and-drop only — none of these need to trigger a render, so
   // they all live outside React state.
   const webDrag = useRef<{ habitId: string; pointerId: number } | null>(null);
@@ -58,6 +64,10 @@ export default function Dashboard() {
   useFocusEffect(
     useCallback(() => {
       refetch();
+      // Search is intentionally page-local, ephemeral state: leaving the
+      // dashboard (blur) always clears it, so coming back is always a
+      // fresh, unfiltered view.
+      return () => setQuery("");
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   );
@@ -108,7 +118,7 @@ export default function Dashboard() {
   /**
    * One habit's card, its expand/collapse-subhabits control, and (if not
    * collapsed) its subhabits nested *inside* its own bordered box — see
-   * `styles.nodeBox`. `onDragHandleLongPress`/
+   * `nodeBoxStyles.nodeBox` (`lib/node-box.ts`). `onDragHandleLongPress`/
    * `dragHandleRef`/`rowRef`/`isActive` all come from whichever
    * `siblingGroup` rendered this node (this habit's *own* siblings — its
    * subhabits get their own, separate set from their own `siblingGroup`
@@ -130,12 +140,17 @@ export default function Dashboard() {
     dragHandleRef,
     rowRef,
     isActive,
+    depth = 0,
   }: {
     habit: ApiHabit;
     onDragHandleLongPress?: () => void;
     dragHandleRef?: (node: unknown) => void;
     rowRef?: (node: unknown) => void;
     isActive?: boolean;
+    /** 0 = top-level — alternates `nodeBox`'s background (see
+     * `nodeBackgroundForDepth`) and is passed one deeper to this habit's
+     * own subhabits below. */
+    depth?: number;
   }) {
     const childHabits = childrenOf(habit.id, allHabits).filter((h) => !h.archivedAt);
     // All descendants (grandchildren etc.), not just direct children — the
@@ -147,7 +162,14 @@ export default function Dashboard() {
     const childrenHidden = collapsed.has(habit.id);
 
     return (
-      <View ref={rowRef} style={[styles.nodeBox, isActive && styles.nodeBoxActive]}>
+      <View
+        ref={rowRef}
+        style={[
+          nodeBoxStyles.nodeBox,
+          { backgroundColor: nodeBackgroundForDepth(depth) },
+          isActive && nodeBoxStyles.nodeBoxActive,
+        ]}
+      >
         <HabitCard
           habit={habit}
           allHabits={allHabits}
@@ -175,7 +197,7 @@ export default function Dashboard() {
             children. Only `collapsed` (the expand/collapse control) governs
             whether they show. */}
         {childHabits.length > 0 && !childrenHidden
-          ? siblingGroup({ habits: childHabits, parentId: habit.id })
+          ? siblingGroup({ habits: childHabits, parentId: habit.id, depth: depth + 1 })
           : null}
       </View>
     );
@@ -198,9 +220,11 @@ export default function Dashboard() {
   function siblingGroup({
     habits: siblingHabits,
     parentId,
+    depth = 0,
   }: {
     habits: ApiHabit[];
     parentId: string | null;
+    depth?: number;
   }) {
     if (Platform.OS === "web") {
       const rowEls = new Map<string, HTMLElement>();
@@ -266,6 +290,7 @@ export default function Dashboard() {
                 rowRef: (node) => {
                   if (node) rowEls.set(h.id, node as HTMLElement);
                 },
+                depth,
               })}
             </Fragment>
           ))}
@@ -287,7 +312,7 @@ export default function Dashboard() {
         }}
         renderItem={({ item, drag, isActive }: RenderItemParams<ApiHabit>) => (
           <ScaleDecorator>
-            {habitNode({ habit: item, onDragHandleLongPress: drag, isActive })}
+            {habitNode({ habit: item, onDragHandleLongPress: drag, isActive, depth })}
           </ScaleDecorator>
         )}
       />
@@ -315,10 +340,39 @@ export default function Dashboard() {
         </View>
       </View>
 
+      <View style={styles.searchRow}>
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search habits…"
+          placeholderTextColor={theme.colors.text.faint}
+          style={styles.searchInput}
+          accessibilityLabel="Search habits"
+        />
+        {query.length > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Clear search"
+            onPress={() => setQuery("")}
+            hitSlop={8}
+            style={styles.clearSearch}
+          >
+            <Text style={styles.clearSearchText}>✕</Text>
+          </Pressable>
+        ) : null}
+      </View>
+
       {loading && topLevelHabits.length === 0 ? (
         <ActivityIndicator style={styles.spinner} />
       ) : error ? (
         <Text style={styles.error}>{error}</Text>
+      ) : query.trim() ? (
+        <SearchResults
+          query={query}
+          allHabits={allHabits}
+          timeZone={user?.timeZone ?? "UTC"}
+          onChanged={refetch}
+        />
       ) : topLevelHabits.length === 0 ? (
         <Text style={styles.empty}>No habits yet — tap &ldquo;+ New&rdquo; to add one.</Text>
       ) : Platform.OS === "web" ? (
@@ -351,6 +405,25 @@ const styles = StyleSheet.create({
   headerLinks: { flexDirection: "row", alignItems: "center", gap: 16 },
   archivedLink: { color: theme.colors.text.muted, fontSize: 14 },
   addLink: { color: theme.colors.brand, fontWeight: "600", fontSize: 16 },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  searchInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    color: theme.colors.text.primary,
+  },
+  clearSearch: { paddingVertical: 4, paddingHorizontal: 4 },
+  clearSearchText: { color: theme.colors.text.muted, fontSize: 15 },
   spinner: { marginTop: 40 },
   error: { color: theme.colors.error, textAlign: "center", marginTop: 40, paddingHorizontal: 20 },
   empty: {
@@ -362,21 +435,14 @@ const styles = StyleSheet.create({
   // Only the outermost scroll container gets side/bottom padding — every
   // `siblingGroup`, top-level or nested, only ever needs the gap between
   // its own siblings (its own `nodeBox`'s padding provides the rest).
+  // `nodeBox`/`nodeBoxActive` themselves live in `lib/node-box.ts`, shared
+  // with the search results view — a habit's card, its expand-subhabits
+  // control, and its (visible) subhabits all live *inside* that one
+  // bordered box — subhabits render nested directly within it (as a
+  // further sibling of its own header, sharing this box's own gap), not
+  // just indented alongside it, so the border visually contains them.
   scrollContent: { paddingHorizontal: 20, paddingBottom: 20 },
   siblingList: { gap: 12 },
-  // A habit's card, its expand-subhabits control, and its (visible)
-  // subhabits all live *inside* this one bordered box — subhabits render
-  // nested directly within it (as a further sibling of its own header,
-  // sharing this box's own gap), not just indented alongside it, so the
-  // border visually contains them.
-  nodeBox: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 14,
-    padding: 14,
-    gap: 12,
-  },
-  nodeBoxActive: { opacity: 0.85 },
   expandToggle: {
     flexDirection: "row",
     alignItems: "center",

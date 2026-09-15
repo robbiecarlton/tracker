@@ -8,6 +8,7 @@ export * from "./domain";
 export * from "./auth-schemas";
 export * from "./habit-schemas";
 export * from "./habit-tree";
+export * from "./search";
 export * from "./time";
 export * from "./views";
 export * from "./targets";
