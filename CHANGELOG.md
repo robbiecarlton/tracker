@@ -9,6 +9,21 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-09-14 — Fuzzy habit search; alternating nested-box backgrounds
+
+**`@tracker/core` 0.8.0**: `fuzzySubsequenceMatch` (case-insensitive,
+ordered subsequence — fzf-style) and `searchHabits`, which matches a query
+against a habit's own name plus every ancestor's, returning matches grouped
+by nesting depth ascending, each group already in normal tree order.
+
+**`@tracker/mobile` 0.9.0**: a search box at the top of the dashboard using
+the above — results render as a flat list (no nesting), grouped by depth,
+each with a small ancestor breadcrumb, the full normal habit card, and its
+subhabit count. Clears on leaving the dashboard, plus an explicit clear
+button. Also: nested habit boxes now subtly alternate background color
+(plain white / very pale gray) by nesting depth, reused by search results
+too.
+
 ## 2026-09-14 — Log/+note stay visible when a habit is content-collapsed
 
 **`@tracker/mobile` 0.8.1**: collapsing a habit's own content used to hide

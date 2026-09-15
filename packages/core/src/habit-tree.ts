@@ -1,4 +1,5 @@
 import type { HabitLog } from "./domain";
+import { fuzzySubsequenceMatch } from "./search";
 
 /**
  * Pure tree helpers for nested habits (subhabits) — see `docs/DOMAIN.md`'s
@@ -124,4 +125,55 @@ export function buildDashboardRows<T extends HabitNode>(
   }
   walk(null, 0);
   return rows;
+}
+
+/** One habit search match, plus enough context to render it flat (no nesting). */
+export interface HabitSearchMatch<T extends HabitNode> {
+  habit: T;
+  /** 0 = top-level. */
+  depth: number;
+  /** Root-to-immediate-parent, excluding `habit` itself. */
+  ancestors: T[];
+}
+
+/**
+ * Fuzzy-subsequence search (`fuzzySubsequenceMatch`) over a habit's full
+ * path — every ancestor's name plus its own, in order — so a query like
+ * `"ru"` matches "Run" whether or not any of its ancestors also match, and
+ * a query matching a parent's path always also matches every descendant's
+ * (a descendant's path is the parent's path with more text appended, and
+ * appending text can only ever help a subsequence match, never hurt it).
+ *
+ * Results are **grouped by depth, ascending** (top-level matches first,
+ * then depth-1, etc.) rather than nested — the mobile search UI renders
+ * matches flat, with less-nested habits shown above their children. Each
+ * inner array is already in normal tree order (this walks `childrenOf` in
+ * existing `sortOrder`), so callers don't need to re-sort within a depth.
+ * Archived habits — and, per the same rule `aggregatedLogs`/
+ * `buildDashboardRows` already use, their entire subtree — are excluded.
+ * An empty/whitespace-only query returns no groups.
+ */
+export function searchHabits<T extends HabitNode & { name: string }>(
+  query: string,
+  habits: readonly T[],
+): HabitSearchMatch<T>[][] {
+  const q = query.trim();
+  if (!q) return [];
+
+  const buckets = new Map<number, HabitSearchMatch<T>[]>();
+  function walk(parentId: string | null, ancestors: T[], depth: number) {
+    for (const habit of childrenOf(parentId, habits)) {
+      if (habit.archivedAt) continue;
+      const path = [...ancestors, habit].map((h) => h.name).join(" ");
+      if (fuzzySubsequenceMatch(q, path)) {
+        const bucket = buckets.get(depth) ?? [];
+        bucket.push({ habit, depth, ancestors });
+        buckets.set(depth, bucket);
+      }
+      walk(habit.id, [...ancestors, habit], depth + 1);
+    }
+  }
+  walk(null, [], 0);
+
+  return [...buckets.keys()].sort((a, b) => a - b).map((depth) => buckets.get(depth)!);
 }

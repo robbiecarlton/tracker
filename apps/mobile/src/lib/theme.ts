@@ -19,6 +19,9 @@ export const theme = {
     },
     border: "#d2d5da",
     background: "#fff",
+    /** Alternate nested-habit-box background (zebra striping by nesting
+     * depth on the dashboard) — deliberately subtle, just off-white. */
+    backgroundAlt: "#f6f7f9",
     /** Text/icon color on top of a solid brand-colored surface (e.g. a button). */
     onBrand: "#fff",
     warning: {

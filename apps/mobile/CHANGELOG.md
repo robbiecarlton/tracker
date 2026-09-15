@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-14
+
+### Added
+
+- **Habit search**: a search box at the top of the dashboard fuzzy-matches
+  (ordered subsequence, e.g. `"exru"`/`"xrun"`/`"ru"` all match "Be Healthy
+  → Exercise → Run") against a habit's own name plus every ancestor's.
+  Results render as a flat list, grouped by nesting depth (less-nested
+  matches above their own matching children), each showing a small
+  breadcrumb of its ancestors, the full normal habit card (Log, `+note`,
+  Edit, `+ Subhabit`, tiles/heatmap), and its subhabit count — reusing
+  `HabitCard` as-is, just without a drag handle or the content-collapse
+  toggle (`components/SearchResults.tsx`, `@tracker/core`'s new
+  `searchHabits`). The search clears whenever the dashboard loses focus,
+  plus an explicit clear button next to the box.
+
+### Changed
+
+- Nested habit boxes now subtly alternate background color by nesting
+  depth (plain white / very pale gray) instead of all sharing the same
+  white, making it easier to track which box belongs to which level. The
+  same alternation applies to search results.
+
 ## [0.8.1] - 2026-09-14
 
 ### Fixed

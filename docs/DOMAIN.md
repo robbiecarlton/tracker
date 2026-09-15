@@ -128,7 +128,20 @@ reparenting to a habit's own descendant is rejected (would create a cycle).
   "just show me the children." Both collapse states are local-only (not
   synced across devices). Drag-to-reorder (below) is always scoped to one
   level of nesting at a time — a habit's direct subhabits reorder among
-  themselves, independently of their own parent's siblings.
+  themselves, independently of their own parent's siblings. Each nested
+  box's background subtly alternates (plain white / very pale gray) by
+  nesting depth, purely visual.
+- **Search**: a box at the top of the dashboard fuzzy-matches (ordered
+  subsequence, case-insensitive — e.g. `"exru"`/`"xrun"`/`"ru"` all match
+  "Be Healthy → Exercise → Run") against a habit's own name plus every
+  ancestor's (`@tracker/core`'s `searchHabits`). Matches render as a
+  **flat** list (never nested), grouped by nesting depth ascending — a
+  less-nested match always shows above its own matching children — each
+  with a small ancestor breadcrumb, the full normal habit card (Log,
+  `+note`, Edit, Add subhabit, tiles/heatmap), and its subhabit count.
+  Archived habits (and their subtrees) are excluded, matching the rest of
+  the dashboard. The search is ephemeral — cleared on leaving the
+  dashboard and via an explicit clear button — never persisted.
 - **Log list**: defaults to showing a habit's own logs plus every
   descendant's (labeled with its source habit), with a filter to narrow to
   just this habit's own.

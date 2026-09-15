@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-14
+
+### Added
+
+- Fuzzy habit search: `fuzzySubsequenceMatch` (case-insensitive, ordered
+  subsequence — fzf-style) and `searchHabits`, which matches a query
+  against every habit's full ancestor path and returns matches grouped by
+  nesting depth, ascending, each group already in normal tree order.
+
 ## [0.7.0] - 2026-09-12
 
 ### Added
