@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-15
+
+### Added
+
+- Heatmap cells can now be inspected: hovering a cell on web shows a
+  tooltip with the bucket's date, log count, and each contributing log's
+  habit-path (relative to the card's own habit, so a rolled-up sub-habit's
+  logs are distinguishable) and notes. On native, long-press a cell then
+  drag across the grid — a floating readout above it updates live to
+  whichever cell is currently under the finger, and dismisses on lift.
+
 ## [0.10.1] - 2026-09-15
 
 ### Changed

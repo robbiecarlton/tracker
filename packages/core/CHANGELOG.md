@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-15
+
+### Added
+
+- `HeatmapBucket.logs` — the individual `HabitLog`s that landed in each
+  bucket (oldest first), not just its `count`, for the heatmap cell
+  inspection feature. `computeHeatmap`'s aggregation step is now
+  `groupLogsByUnit`, replacing `countLogsByUnit` (a bucket's `count` is
+  simply its group's length).
+- `getAncestors(habitId, habits)` in `habit-tree.ts` — root-to-immediate-
+  parent chain for an arbitrary habit id, for resolving a rolled-up log's
+  habit-path breadcrumb outside of a search walk.
+
 ## [0.9.0] - 2026-09-14
 
 ### Added

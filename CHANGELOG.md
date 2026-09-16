@@ -9,6 +9,16 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-09-15 — Heatmap cell inspection (date/count/logs on hover or long-press)
+
+**`@tracker/core` 0.10.0**: `HeatmapBucket.logs` — the individual logs behind
+each bucket's count, oldest first; `getAncestors(habitId, habits)` in
+`habit-tree.ts` for resolving a rolled-up log's habit-path breadcrumb.
+
+**`@tracker/mobile` 0.11.0**: hovering a heatmap cell on web (or long-press-
+then-drag on native, since there's no hover) reveals its date, count, and
+each contributing log's habit-path + notes.
+
 ## 2026-09-15 — Default "Add log" timestamp to now
 
 **`@tracker/mobile` 0.10.1**: the "Add log" form's date & time field now

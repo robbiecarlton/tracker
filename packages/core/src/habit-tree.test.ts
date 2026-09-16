@@ -4,6 +4,7 @@ import {
   aggregatedLogs,
   buildDashboardRows,
   childrenOf,
+  getAncestors,
   getDescendants,
   searchHabits,
   wouldCreateCycle,
@@ -70,6 +71,23 @@ describe("getDescendants", () => {
 
   it("returns an empty array for a leaf habit", () => {
     expect(getDescendants("vaping", fixtureTree())).toEqual([]);
+  });
+});
+
+describe("getAncestors", () => {
+  it("returns the root-to-immediate-parent chain, excluding the habit itself", () => {
+    expect(getAncestors("vaping", fixtureTree()).map((h) => h.id)).toEqual([
+      "bad-habits",
+      "smoking",
+    ]);
+  });
+
+  it("returns an empty array for a top-level habit", () => {
+    expect(getAncestors("bad-habits", fixtureTree())).toEqual([]);
+  });
+
+  it("returns an empty array for an unknown id", () => {
+    expect(getAncestors("nonexistent", fixtureTree())).toEqual([]);
   });
 });
 
@@ -195,9 +213,9 @@ describe("searchHabits", () => {
   it("matches a leaf habit by its full ancestor path, grouped under its own depth", () => {
     const groups = searchHabits("heaerun", healthTree());
     expect(groups).toHaveLength(1);
-    expect(groups.flat().map((m) => [m.habit.id, m.depth, m.ancestors.map((a) => a.id)])).toEqual(
-      [["run", 2, ["be-healthy", "exercise"]]],
-    );
+    expect(groups.flat().map((m) => [m.habit.id, m.depth, m.ancestors.map((a) => a.id)])).toEqual([
+      ["run", 2, ["be-healthy", "exercise"]],
+    ]);
   });
 
   it("doesn't force-include a non-matching sibling", () => {

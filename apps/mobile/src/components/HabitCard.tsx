@@ -2,13 +2,14 @@ import {
   aggregatedLogs,
   computeHabitView,
   computeHighlight,
+  getAncestors,
   type HabitLog,
   type HabitView,
   type HeatmapResult,
   type TimeContext,
 } from "@tracker/core";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { createLog } from "@/api/habits";
 import type { ApiHabit } from "@/api/types";
@@ -103,6 +104,26 @@ export function HabitCard({
   const [logging, setLogging] = useState(false);
   const ctx: TimeContext = { now: new Date().toISOString(), timeZone };
   const logs = aggregatedLogs(habit.id, allHabits);
+
+  /**
+   * A log's breadcrumb *relative to this card's own habit* — e.g.
+   * "Exercise › Running" for a log rolled up from a sub-habit, or just
+   * "Exercise" for a log directly on this habit — not the absolute
+   * root-to-leaf path (`SearchResults.tsx` shows that instead, for a
+   * different purpose: identifying an unfamiliar flat search result). The
+   * user is already looking at this habit's own heatmap, so only what's
+   * below it is new information.
+   */
+  const getHabitPath = useMemo(() => {
+    return (logHabitId: string): string => {
+      const logHabit = allHabits.find((h) => h.id === logHabitId);
+      if (logHabitId === habit.id) return habit.name;
+      const ancestors = getAncestors(logHabitId, allHabits);
+      const selfIndex = ancestors.findIndex((a) => a.id === habit.id);
+      const relative = selfIndex >= 0 ? ancestors.slice(selfIndex) : ancestors;
+      return [...relative, ...(logHabit ? [logHabit] : [])].map((h) => h.name).join(" › ");
+    };
+  }, [allHabits, habit.id, habit.name]);
 
   async function onLog() {
     setLogging(true);
@@ -240,7 +261,12 @@ export function HabitCard({
           return (
             <View key={view.id} style={styles.heatmapSection}>
               <Text style={styles.heatmapLabel}>{heatmapUnitLabel(result.unit)}</Text>
-              <Heatmap result={result} polarity={view.heatmapPolarity} />
+              <Heatmap
+                result={result}
+                polarity={view.heatmapPolarity}
+                timeZone={timeZone}
+                getHabitPath={getHabitPath}
+              />
             </View>
           );
         })}

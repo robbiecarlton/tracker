@@ -376,7 +376,9 @@ describe("computeHeatmap", () => {
     const currentWeekStart = DateTime.fromISO("2026-09-10T12:00:00Z", { zone: "UTC" })
       .startOf("week")
       .toISODate();
-    expect(DateTime.fromISO(weekResult.buckets.at(-1)!.start, { zone: "utc" }).toISODate()).toBe(currentWeekStart);
+    expect(DateTime.fromISO(weekResult.buckets.at(-1)!.start, { zone: "utc" }).toISODate()).toBe(
+      currentWeekStart,
+    );
     expect(weekResult.buckets.at(-1)!.count).toBe(1);
 
     const monthResult = computeHeatmap(h, view({ kind: "heatmap", unit: "month" }), logs, now);
@@ -387,6 +389,61 @@ describe("computeHeatmap", () => {
       currentMonthStart,
     );
     expect(monthResult.buckets.at(-1)!.count).toBe(1);
+  });
+
+  it("each bucket's logs are exactly the ones counted, and empty buckets carry []", () => {
+    const logs = [log("2026-09-10T08:00:00Z"), log("2026-09-10T20:00:00Z", { id: "log-2" })];
+    const result = computeHeatmap(h, view({ kind: "heatmap", unit: "day" }), logs, now);
+
+    const today = result.buckets.find(
+      (b) => DateTime.fromISO(b.start, { zone: "utc" }).toISODate() === "2026-09-10",
+    );
+    expect(today?.logs.map((l) => l.id).sort()).toEqual(["log-2", "log-2026-09-10T08:00:00Z"]);
+
+    const yesterday = result.buckets.find(
+      (b) => DateTime.fromISO(b.start, { zone: "utc" }).toISODate() === "2026-09-09",
+    );
+    expect(yesterday?.logs).toEqual([]);
+  });
+
+  it("a log exactly on a bucket's start boundary lands in that bucket, not the previous one", () => {
+    // The current week's Monday is 2026-09-07T00:00:00Z (UTC).
+    const logs = [log("2026-09-07T00:00:00Z")];
+    const result = computeHeatmap(h, view({ kind: "heatmap", unit: "day" }), logs, now);
+
+    const boundaryDay = result.buckets.find(
+      (b) => DateTime.fromISO(b.start, { zone: "utc" }).toISODate() === "2026-09-07",
+    );
+    expect(boundaryDay?.count).toBe(1);
+
+    const priorDay = result.buckets.find(
+      (b) => DateTime.fromISO(b.start, { zone: "utc" }).toISODate() === "2026-09-06",
+    );
+    expect(priorDay?.count).toBe(0);
+  });
+
+  it("logs rolled up from a sub-habit keep their own habitId and land in the right bucket", () => {
+    const logs = [log("2026-09-10T08:00:00Z", { id: "sub-log", habitId: "sub-habit" })];
+    const result = computeHeatmap(h, view({ kind: "heatmap", unit: "day" }), logs, now);
+
+    const today = result.buckets.find(
+      (b) => DateTime.fromISO(b.start, { zone: "utc" }).toISODate() === "2026-09-10",
+    );
+    expect(today?.logs).toEqual([expect.objectContaining({ id: "sub-log", habitId: "sub-habit" })]);
+  });
+
+  it("multiple logs in the same bucket come back sorted oldest-first, regardless of input order", () => {
+    const logs = [
+      log("2026-09-10T20:00:00Z", { id: "late" }),
+      log("2026-09-10T08:00:00Z", { id: "early" }),
+      log("2026-09-10T12:00:00Z", { id: "mid" }),
+    ];
+    const result = computeHeatmap(h, view({ kind: "heatmap", unit: "day" }), logs, now);
+
+    const today = result.buckets.find(
+      (b) => DateTime.fromISO(b.start, { zone: "utc" }).toISODate() === "2026-09-10",
+    );
+    expect(today?.logs.map((l) => l.id)).toEqual(["early", "mid", "late"]);
   });
 });
 

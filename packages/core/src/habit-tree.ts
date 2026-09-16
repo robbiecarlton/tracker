@@ -54,6 +54,30 @@ export function getDescendants<T extends HabitNode>(
 }
 
 /**
+ * Root-to-immediate-parent chain for an arbitrary `habitId` — the same
+ * shape `searchHabits` already accumulates incrementally while walking the
+ * whole tree (`HabitSearchMatch.ancestors`), but as a standalone lookup for
+ * callers that only have an id in hand (not already mid-walk). Excludes
+ * `habitId` itself; `[]` for a top-level habit or an unknown id. Guards
+ * against a corrupt/cyclic `parentId` chain by stopping rather than
+ * looping forever.
+ */
+export function getAncestors<T extends HabitNode>(habitId: string, habits: readonly T[]): T[] {
+  const byId = new Map(habits.map((h) => [h.id, h] as const));
+  const chain: T[] = [];
+  const seen = new Set<string>();
+  let parentId = byId.get(habitId)?.parentId ?? null;
+  while (parentId && !seen.has(parentId)) {
+    seen.add(parentId);
+    const parent = byId.get(parentId);
+    if (!parent) break;
+    chain.unshift(parent);
+    parentId = parent.parentId;
+  }
+  return chain;
+}
+
+/**
  * True if setting `habitId`'s parent to `proposedParentId` would create a
  * cycle — i.e. `proposedParentId` is `habitId` itself, or already one of its
  * own descendants. Doesn't check ownership/existence — callers do that

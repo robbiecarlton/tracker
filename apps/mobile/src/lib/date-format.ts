@@ -35,6 +35,11 @@ export function formatCalendarDate(iso: string, timeZone: string): string {
   return DateTime.fromISO(iso, { zone: timeZone }).toLocaleString(DateTime.DATE_MED);
 }
 
+/** Display string for a month + year only, e.g. "September 2026" — a month-unit heatmap bucket. */
+export function formatMonthYear(iso: string, timeZone: string): string {
+  return DateTime.fromISO(iso, { zone: timeZone }).toFormat("LLLL yyyy");
+}
+
 /**
  * Parses a "YYYY-MM-DD HH:mm" string typed by the user, interpreted in their
  * timezone, into a UTC ISO string ready for the API. Returns `null` if the

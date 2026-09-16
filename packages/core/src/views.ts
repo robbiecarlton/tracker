@@ -74,6 +74,8 @@ export interface HeatmapBucket {
   start: string;
   /** Log count within this bucket — 0 renders as "no activity", not "no data". */
   count: number;
+  /** The logs that landed in this bucket, oldest first — same set `count` is derived from. */
+  logs: HabitLog[];
 }
 
 export interface HeatmapResult {
@@ -84,12 +86,7 @@ export interface HeatmapResult {
 }
 
 export type ViewResult =
-  | CumulativeResult
-  | StreakResult
-  | PercentageResult
-  | DaysResult
-  | SinceResult
-  | HeatmapResult;
+  CumulativeResult | StreakResult | PercentageResult | DaysResult | SinceResult | HeatmapResult;
 
 function resolveUnit(view: HabitView): Unit {
   return view.unit ?? DEFAULT_UNIT;
@@ -109,22 +106,25 @@ export function bucketLogsByUnit(
 }
 
 /**
- * Like `bucketLogsByUnit`, but counts logs per unit-bucket instead of just
- * presence — Heatmap needs actual counts for cell intensity; every other
- * view only ever needs "was there ≥1 log that unit". Exported for direct
- * unit testing.
+ * Like `bucketLogsByUnit`, but groups the actual `HabitLog`s per unit-bucket
+ * instead of just presence or a count — Heatmap's cell-inspection feature
+ * needs the individual logs that contributed to a bucket, not just how
+ * many. `computeHeatmap` derives a bucket's `count` as its group's
+ * `.length`. Exported for direct unit testing.
  */
-export function countLogsByUnit(
+export function groupLogsByUnit(
   logs: readonly HabitLog[],
   unit: Unit,
   timeZone: string,
-): ReadonlyMap<string, number> {
-  const counts = new Map<string, number>();
+): ReadonlyMap<string, HabitLog[]> {
+  const groups = new Map<string, HabitLog[]>();
   for (const log of logs) {
     const key = unitKey(parseInZone(log.timestamp, timeZone), unit);
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+    const group = groups.get(key);
+    if (group) group.push(log);
+    else groups.set(key, [log]);
   }
-  return counts;
+  return groups;
 }
 
 export function computeCumulative(
@@ -282,7 +282,7 @@ export function computeHeatmap(
   const unit = (view.unit ?? "day") as HeatmapUnit;
   const bucketCount = HEATMAP_BUCKET_COUNT[unit];
   const now = nowInZone(ctx);
-  const counts = countLogsByUnit(logs, unit, ctx.timeZone);
+  const groups = groupLogsByUnit(logs, unit, ctx.timeZone);
 
   const windowStart =
     unit === "day"
@@ -292,9 +292,13 @@ export function computeHeatmap(
   const buckets: HeatmapBucket[] = [];
   let cursor = windowStart;
   for (let i = 0; i < bucketCount; i++) {
+    const bucketLogs = groups.get(unitKey(cursor, unit)) ?? [];
     buckets.push({
       start: cursor.toISO() ?? cursor.toJSDate().toISOString(),
-      count: counts.get(unitKey(cursor, unit)) ?? 0,
+      count: bucketLogs.length,
+      logs: [...bucketLogs].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      ),
     });
     cursor = addUnits(cursor, unit, 1);
   }
