@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-23
+
+### Added
+
+- `PointsLimit` (`unlimited` | `per_day` | `per_sprint`) and
+  `Habit.pointsLimit` — caps how often a `per_log` habit *scores* (not how
+  often it can be logged). `sprintPoints` applies it; the habit schemas
+  accept it, `per_log` only.
+- `cappedPointsStatus(habit, habits, sprints, ctx)` — for capped habits:
+  done today (`per_day`), and which active sprints it already scored in
+  (`per_sprint`).
+- `suggestSprintPlan(sprint, habits, ctx, rng)` — suggestions for every
+  remaining day of a sprint, carrying caps across days.
+
+### Changed
+
+- `suggestDailyPlan` respects caps: a capped habit is drawn at most once,
+  a used-up capped parent adds nothing further, and an optional
+  `exhausted` set (returned updated) seeds habits that have already scored.
+
 ## [0.13.0] - 2026-10-22
 
 ### Added

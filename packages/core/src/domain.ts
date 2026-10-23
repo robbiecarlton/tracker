@@ -32,6 +32,13 @@ export const DEFAULT_HEATMAP_POLARITY: HeatmapPolarity = "neutral";
  */
 export type PointsKind = "per_log" | "clean_day";
 
+/**
+ * `per_log` habits only: how often logging can *score* (a habit can always
+ * be logged as often as you like). `unlimited` = every log; `per_day` =
+ * once per local calendar day; `per_sprint` = once per sprint.
+ */
+export type PointsLimit = "unlimited" | "per_day" | "per_sprint";
+
 export interface HabitView {
   id: string;
   habitId: string;
@@ -92,6 +99,8 @@ export interface Habit {
   pointsKind: PointsKind | null;
   /** Whole number ≥ 1 when `pointsKind` is set, else `null`. */
   pointsValue: number | null;
+  /** `per_log` only; `null` means `unlimited` (and is the only value for other kinds). */
+  pointsLimit: PointsLimit | null;
   createdAt: string;
   updatedAt: string;
 }

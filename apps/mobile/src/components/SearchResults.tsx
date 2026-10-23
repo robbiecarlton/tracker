@@ -1,6 +1,6 @@
 import { getDescendants, type HabitSearchMatch } from "@tracker/core";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import type { ApiHabit } from "@/api/types";
+import type { ApiHabit, ApiSprint } from "@/api/types";
 import { nodeBackgroundForDepth, nodeBoxStyles } from "@/lib/node-box";
 import { theme } from "@/lib/theme";
 import { HabitCard } from "./HabitCard";
@@ -26,6 +26,7 @@ export function SearchResults({
   emptyMessage,
   allHabits,
   timeZone,
+  sprints,
   onChanged,
 }: {
   groups: HabitSearchMatch<ApiHabit>[][];
@@ -33,6 +34,7 @@ export function SearchResults({
   emptyMessage: string;
   allHabits: ApiHabit[];
   timeZone: string;
+  sprints: ApiSprint[];
   onChanged: () => void | Promise<void>;
 }) {
   if (groups.length === 0) {
@@ -63,6 +65,7 @@ export function SearchResults({
                 habit={habit}
                 allHabits={allHabits}
                 timeZone={timeZone}
+                sprints={sprints}
                 onChanged={onChanged}
               />
               {descendantCount > 0 ? (

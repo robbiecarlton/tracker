@@ -29,6 +29,7 @@ export interface HabitJson {
   sortOrder: number;
   pointsKind: string | null;
   pointsValue: number | null;
+  pointsLimit: string | null;
   createdAt: string;
   updatedAt: string;
   views: {
@@ -465,6 +466,32 @@ describe("habit points", () => {
     });
     const cleared = await edit({});
     expect((cleared.json() as { habit: HabitJson }).habit.pointsKind).toBeNull();
+  });
+
+  it("stores a per-log limit, normalizing unlimited to null", async () => {
+    const cookie = await signUpAndGetCookie(app, "points-limit");
+    const capped = await create(cookie, {
+      pointsKind: "per_log",
+      pointsValue: 2,
+      pointsLimit: "per_sprint",
+    });
+    expect((capped.json() as { habit: HabitJson }).habit.pointsLimit).toBe("per_sprint");
+    const unlimited = await create(cookie, {
+      pointsKind: "per_log",
+      pointsValue: 2,
+      pointsLimit: "unlimited",
+    });
+    expect((unlimited.json() as { habit: HabitJson }).habit.pointsLimit).toBeNull();
+  });
+
+  it("rejects a limit on clean-day points", async () => {
+    const cookie = await signUpAndGetCookie(app, "points-limit-invalid");
+    const res = await create(cookie, {
+      pointsKind: "clean_day",
+      pointsValue: 2,
+      pointsLimit: "per_day",
+    });
+    expect(res.statusCode).toBe(400);
   });
 
   it("rejects a kind without a value", async () => {

@@ -1,5 +1,6 @@
 import {
   aggregatedLogs,
+  cappedPointsStatus,
   computeHabitView,
   computeHighlight,
   doubleCountedHabitIds,
@@ -13,9 +14,9 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { createLog } from "@/api/habits";
-import type { ApiHabit } from "@/api/types";
+import type { ApiHabit, ApiSprint } from "@/api/types";
 import { confirmAlert } from "@/lib/confirm";
-import { pointsChipLabel } from "@/lib/points-format";
+import { pointsChipLabel, sprintLabel } from "@/lib/points-format";
 import { theme } from "@/lib/theme";
 import {
   formatViewValue,
@@ -68,6 +69,7 @@ export function HabitCard({
   habit,
   allHabits,
   timeZone,
+  sprints = [],
   onChanged,
   onDragHandleLongPress,
   dragHandleRef,
@@ -79,6 +81,8 @@ export function HabitCard({
    * their logs into its own view calculations (see `aggregatedLogs`). */
   allHabits: ApiHabit[];
   timeZone: string;
+  /** For the "already scored in this sprint" labels on once-per-sprint habits. */
+  sprints?: ApiSprint[];
   onChanged: () => void | Promise<void>;
   /** Native (iOS): wired to `DraggableFlatList`'s per-item `drag` callback,
    * fired on long-press. Undefined on web, where dragging is native HTML5
@@ -145,14 +149,29 @@ export function HabitCard({
     () => doubleCountedHabitIds(allHabits).has(habit.id),
     [allHabits, habit.id],
   );
+  // Capped habits (once a day / once per sprint) say when they've already
+  // scored, since logging again earns nothing more until the cap resets.
+  const capped = cappedPointsStatus(habit, allHabits, sprints, ctx);
+  const doneLabels = [
+    ...(capped.doneToday ? ["Done today"] : []),
+    ...capped.doneSprintIds.map((id) => {
+      const sprint = sprints.find((s) => s.id === id);
+      return sprint ? `Done: ${sprintLabel(sprint, timeZone)}` : "Done this sprint";
+    }),
+  ];
   const pointsBadges =
     habit.pointsKind && habit.pointsValue != null ? (
       <View style={styles.badges}>
         <View style={styles.pointsChip}>
           <Text style={styles.pointsChipText}>
-            {pointsChipLabel(habit.pointsKind, habit.pointsValue)}
+            {pointsChipLabel(habit.pointsKind, habit.pointsValue, habit.pointsLimit)}
           </Text>
         </View>
+        {doneLabels.map((label) => (
+          <View key={label} style={styles.doneChip}>
+            <Text style={styles.doneChipText}>✓ {label}</Text>
+          </View>
+        ))}
         {doubleCounted ? (
           <View style={styles.doubleCountChip}>
             <Text style={styles.doubleCountChipText}>Double counting</Text>
@@ -346,6 +365,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   pointsChipText: { fontSize: 12, fontWeight: "600", color: theme.colors.points.text },
+  doneChip: {
+    backgroundColor: theme.colors.points.doneBackground,
+    borderRadius: 999,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+  },
+  doneChipText: { fontSize: 12, fontWeight: "600", color: theme.colors.points.doneText },
   doubleCountChip: {
     backgroundColor: theme.colors.warning.background,
     borderColor: theme.colors.warning.border,

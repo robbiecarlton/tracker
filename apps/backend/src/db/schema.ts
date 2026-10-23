@@ -124,6 +124,8 @@ export const habit = pgTable(
      */
     pointsKind: text("points_kind"),
     pointsValue: integer("points_value"),
+    /** `per_log` only — see `PointsLimit` in `@tracker/core`. Null = unlimited. */
+    pointsLimit: text("points_limit"),
     ...timestamps,
   },
   (t) => [index("habit_user_id_idx").on(t.userId), index("habit_parent_id_idx").on(t.parentId)],

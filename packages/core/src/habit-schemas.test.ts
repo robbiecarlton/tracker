@@ -277,6 +277,16 @@ describe("habit points fields", () => {
     }
   });
 
+  it("only lets per-log points be limited", () => {
+    const ok = { ...base, pointsKind: "per_log", pointsValue: 1 };
+    for (const pointsLimit of ["unlimited", "per_day", "per_sprint", null]) {
+      expect(createHabitSchema.safeParse({ ...ok, pointsLimit }).success).toBe(true);
+    }
+    const clean = { ...base, pointsKind: "clean_day", pointsValue: 1 };
+    expect(createHabitSchema.safeParse({ ...clean, pointsLimit: "per_day" }).success).toBe(false);
+    expect(createHabitSchema.safeParse({ ...base, pointsLimit: "per_sprint" }).success).toBe(false);
+  });
+
   it("applies the same rule on edit", () => {
     const edit = { ...base, views: [{ kind: "cumulative" }], parentId: null };
     expect(

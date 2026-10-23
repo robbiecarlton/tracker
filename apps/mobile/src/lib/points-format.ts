@@ -2,6 +2,7 @@ import {
   sprintStatus,
   type PointSprint,
   type PointsKind,
+  type PointsLimit,
   type SuggestionItem,
   type TimeContext,
 } from "@tracker/core";
@@ -12,9 +13,19 @@ import { DateTime } from "luxon";
  * `@tracker/core`'s `points.ts`; this only turns its numbers into text.
  */
 
-/** The small chip on a habit card, e.g. "+3 per log" / "+5 per clean day". */
-export function pointsChipLabel(kind: PointsKind, value: number): string {
-  return kind === "per_log" ? `+${value} per log` : `+${value} per clean day`;
+/**
+ * The small chip on a habit card, e.g. "+3 per log", "+3 once a day",
+ * "+3 once per sprint", or "+5 per clean day".
+ */
+export function pointsChipLabel(
+  kind: PointsKind,
+  value: number,
+  limit: PointsLimit | null = null,
+): string {
+  if (kind === "clean_day") return `+${value} per clean day`;
+  if (limit === "per_day") return `+${value} once a day`;
+  if (limit === "per_sprint") return `+${value} once per sprint`;
+  return `+${value} per log`;
 }
 
 /** Points-per-day needed, to one decimal place, without a trailing ".0". */
@@ -64,14 +75,25 @@ export function suggestionDayLabel(isoDate: string, ctx: TimeContext): string {
  * `null` when no confirmation is needed.
  */
 export function pointsEditWarning(
-  before: { pointsKind: PointsKind | null; pointsValue: number | null },
-  after: { pointsKind?: PointsKind | null; pointsValue?: number | null },
+  before: {
+    pointsKind: PointsKind | null;
+    pointsValue: number | null;
+    pointsLimit: PointsLimit | null;
+  },
+  after: {
+    pointsKind?: PointsKind | null;
+    pointsValue?: number | null;
+    pointsLimit?: PointsLimit | null;
+  },
   sprints: readonly Pick<PointSprint, "startAt" | "endAt">[],
   ctx: TimeContext,
 ): string | null {
+  // `unlimited` and `null` both mean "no cap".
+  const limit = (l: PointsLimit | null | undefined) => (l === "unlimited" ? null : (l ?? null));
   const changed =
     before.pointsKind !== (after.pointsKind ?? null) ||
-    before.pointsValue !== (after.pointsValue ?? null);
+    before.pointsValue !== (after.pointsValue ?? null) ||
+    limit(before.pointsLimit) !== limit(after.pointsLimit);
   if (!changed) return null;
   const active = sprints.filter((s) => sprintStatus(s, ctx) === "active").length;
   if (active === 0) return null;

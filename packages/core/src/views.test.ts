@@ -28,6 +28,7 @@ function habit(overrides: Partial<Habit> = {}): Habit {
     sortOrder: 0,
     pointsKind: null,
     pointsValue: null,
+    pointsLimit: null,
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-01T00:00:00Z",
     ...overrides,

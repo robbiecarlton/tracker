@@ -27,6 +27,18 @@ import { parseBody } from "../lib/validate";
 
 type ApiHabit = Habit & { logs: HabitLog[]; startDateHistory: HabitStartDateChange[] };
 
+/**
+ * Stored points limit: only `per_log` habits keep one, and `unlimited` is
+ * stored as `null` — so there's one way to say "no cap".
+ */
+function limitFor(input: {
+  pointsKind?: string | null;
+  pointsLimit?: Habit["pointsLimit"];
+}): Habit["pointsLimit"] {
+  if (input.pointsKind !== "per_log" || input.pointsLimit === "unlimited") return null;
+  return input.pointsLimit ?? null;
+}
+
 /** How to resolve a habit's active (non-archived) subhabits when it's deleted or archived. */
 type ChildrenAction = "cascade" | "top_level" | "grandparent";
 
@@ -82,6 +94,7 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
         sortOrder,
         pointsKind: parsed.data.pointsKind ?? null,
         pointsValue: parsed.data.pointsValue ?? null,
+        pointsLimit: limitFor(parsed.data),
         createdAt: now,
         updatedAt: now,
       });
@@ -197,6 +210,7 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
           sortOrder,
           pointsKind: parsed.data.pointsKind ?? null,
           pointsValue: parsed.data.pointsValue ?? null,
+          pointsLimit: limitFor(parsed.data),
           updatedAt: now,
         })
         .where(eq(habit.id, id));
@@ -479,6 +493,7 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
         sortOrder,
         pointsKind: parsed.data.pointsKind ?? null,
         pointsValue: parsed.data.pointsValue ?? null,
+        pointsLimit: limitFor(parsed.data),
         createdAt: now,
         updatedAt: now,
       });
@@ -663,6 +678,7 @@ function toHabit(
     sortOrder: row.sortOrder,
     pointsKind: (row.pointsKind as Habit["pointsKind"]) ?? null,
     pointsValue: row.pointsValue,
+    pointsLimit: (row.pointsLimit as Habit["pointsLimit"]) ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     logs: (logsByHabit.get(row.id) ?? []).map(toHabitLog),

@@ -209,6 +209,7 @@ export default function EditHabit() {
       initialAllowDirectLogging={habit.allowDirectLogging}
       initialPointsKind={habit.pointsKind}
       initialPointsValue={habit.pointsValue}
+      initialPointsLimit={habit.pointsLimit}
       submitLabel="Save"
       timeZone={user?.timeZone ?? "UTC"}
       onSubmit={async (input) => {

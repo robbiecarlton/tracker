@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { HabitLog, PointSprint } from "./domain";
 import {
+  cappedPointsStatus,
   dailyAverageNeeded,
   doubleCountedHabitIds,
   matchesPointsFilter,
@@ -9,6 +10,7 @@ import {
   sprintPoints,
   sprintStatus,
   suggestDailyPlan,
+  suggestSprintPlan,
   type PointsHabit,
 } from "./points";
 
@@ -20,6 +22,7 @@ function habit(id: string, overrides: Partial<PointsHabit> = {}): PointsHabit {
     startDate: "2026-01-01T00:00:00Z",
     pointsKind: null,
     pointsValue: null,
+    pointsLimit: null,
     allowDirectLogging: true,
     logs: [],
     ...overrides,
@@ -119,6 +122,89 @@ describe("sprintPoints — per_log", () => {
   it("ignores habits without points", () => {
     const h = habit("run", { logs: logs("run", "2026-03-02T12:00:00Z") });
     expect(sprintPoints(sprint(), [h], AFTER).total).toBe(0);
+  });
+});
+
+describe("sprintPoints — capped per_log", () => {
+  const run = (pointsLimit: PointsHabit["pointsLimit"], ...ts: string[]) =>
+    habit("run", { pointsKind: "per_log", pointsValue: 2, pointsLimit, logs: logs("run", ...ts) });
+  const twoDays = ["2026-03-01T08:00:00Z", "2026-03-01T20:00:00Z", "2026-03-02T08:00:00Z"] as const;
+
+  it("unlimited (or null) scores every log", () => {
+    expect(sprintPoints(sprint(), [run("unlimited", ...twoDays)], AFTER).total).toBe(6);
+    expect(sprintPoints(sprint(), [run(null, ...twoDays)], AFTER).total).toBe(6);
+  });
+
+  it("per_day scores once per local calendar day", () => {
+    expect(sprintPoints(sprint(), [run("per_day", ...twoDays)], AFTER).total).toBe(4);
+    // 23:00 and 01:00 local (Denver) are different days even within 2h.
+    const ctx = { now: "2026-03-10T00:00:00Z", timeZone: "America/Denver" };
+    const h = run("per_day", "2026-03-02T06:00:00Z", "2026-03-02T08:00:00Z");
+    expect(sprintPoints(sprint(), [h], ctx).total).toBe(4);
+  });
+
+  it("per_sprint scores once in the whole window", () => {
+    expect(sprintPoints(sprint(), [run("per_sprint", ...twoDays)], AFTER).total).toBe(2);
+    expect(sprintPoints(sprint(), [run("per_sprint")], AFTER).total).toBe(0);
+  });
+
+  it("a capped parent scores once however many subhabit logs roll up", () => {
+    const parent = habit("exercise", {
+      pointsKind: "per_log",
+      pointsValue: 5,
+      pointsLimit: "per_sprint",
+    });
+    const child = habit("run", {
+      parentId: "exercise",
+      logs: logs("run", ...twoDays),
+    });
+    expect(sprintPoints(sprint(), [parent, child], AFTER).total).toBe(5);
+  });
+});
+
+describe("cappedPointsStatus", () => {
+  const ctx = utc("2026-03-02T12:00:00Z");
+  const other = sprint({ id: "s2", startAt: "2026-03-02T09:00:00Z" });
+
+  it("per_day: done today if it or a subhabit was logged today", () => {
+    const parent = habit("p", { pointsKind: "per_log", pointsValue: 1, pointsLimit: "per_day" });
+    const child = habit("c", { parentId: "p", logs: logs("c", "2026-03-02T01:00:00Z") });
+    expect(cappedPointsStatus(parent, [parent, child], [], ctx)).toEqual({
+      doneToday: true,
+      doneSprintIds: [],
+    });
+    const yesterday = habit("c", { parentId: "p", logs: logs("c", "2026-03-01T23:00:00Z") });
+    expect(cappedPointsStatus(parent, [parent, yesterday], [], ctx).doneToday).toBe(false);
+  });
+
+  it("per_sprint: lists the active sprints it has already scored in", () => {
+    const h = habit("h", {
+      pointsKind: "per_log",
+      pointsValue: 1,
+      pointsLimit: "per_sprint",
+      logs: logs("h", "2026-03-01T10:00:00Z"),
+    });
+    const ended = sprint({
+      id: "old",
+      startAt: "2026-02-01T00:00:00Z",
+      endAt: "2026-03-02T00:00:00Z",
+    });
+    // In sprint-1 (Mar 1–4) and the ended one; not in s2 (starts Mar 2 09:00).
+    expect(cappedPointsStatus(h, [h], [sprint(), other, ended], ctx).doneSprintIds).toEqual([
+      "sprint-1",
+    ]);
+  });
+
+  it("uncapped habits never get labels", () => {
+    const h = habit("h", {
+      pointsKind: "per_log",
+      pointsValue: 1,
+      logs: logs("h", "2026-03-02T10:00:00Z"),
+    });
+    expect(cappedPointsStatus(h, [h], [sprint()], ctx)).toEqual({
+      doneToday: false,
+      doneSprintIds: [],
+    });
   });
 });
 
@@ -270,7 +356,7 @@ describe("matchesPointsFilter", () => {
 
 describe("suggestDailyPlan", () => {
   it("is empty with no habits worth points", () => {
-    expect(suggestDailyPlan([habit("a")], 5, seeded(1))).toEqual({ items: [], total: 0 });
+    expect(suggestDailyPlan([habit("a")], 5, seeded(1))).toMatchObject({ items: [], total: 0 });
   });
 
   it("reaches at least the target, and items add up to the total", () => {
@@ -328,14 +414,93 @@ describe("suggestDailyPlan", () => {
     }
   });
 
+  it("draws a capped habit at most once, and adds a used-up parent only once", () => {
+    const habits = [
+      habit("exercise", {
+        pointsKind: "per_log",
+        pointsValue: 5,
+        pointsLimit: "per_day",
+        allowDirectLogging: false,
+      }),
+      habit("run", { parentId: "exercise", pointsKind: "per_log", pointsValue: 1 }),
+      habit("read", { pointsKind: "per_log", pointsValue: 1, pointsLimit: "per_day" }),
+    ];
+    for (let seed = 0; seed < 50; seed++) {
+      const plan = suggestDailyPlan(habits, 10, seeded(seed));
+      const read = plan.items.find((i) => i.habitId === "read");
+      if (read) expect(read.count).toBe(1);
+      const run = plan.items.find((i) => i.habitId === "run")!;
+      expect(run.alsoEarns).toEqual([{ habitId: "exercise", points: 5 }]);
+      expect(run.points).toBe(run.count + 5);
+    }
+  });
+
+  it("never draws a habit passed in as exhausted", () => {
+    const habits = [
+      habit("read", { pointsKind: "per_log", pointsValue: 1, pointsLimit: "per_day" }),
+      habit("run", { pointsKind: "per_log", pointsValue: 1 }),
+    ];
+    const plan = suggestDailyPlan(habits, 5, seeded(3), new Set(["read"]));
+    expect(plan.items.map((i) => i.habitId)).toEqual(["run"]);
+  });
+
   it("skips archived habits and stops when only used-up skips remain", () => {
     const habits = [
       habit("smoking", { pointsKind: "clean_day", pointsValue: 2 }),
       habit("old", { pointsKind: "per_log", pointsValue: 1, archivedAt: "x" }),
     ];
-    expect(suggestDailyPlan(habits, 10, seeded(1))).toEqual({
-      items: [{ habitId: "smoking", kind: "clean_day", count: 1, points: 2, alsoEarns: [] }],
-      total: 2,
+    const plan = suggestDailyPlan(habits, 10, seeded(1));
+    expect(plan.items).toEqual([
+      { habitId: "smoking", kind: "clean_day", count: 1, points: 2, alsoEarns: [] },
+    ]);
+    expect(plan.total).toBe(2);
+  });
+});
+
+describe("suggestSprintPlan", () => {
+  const ctx = utc("2026-03-01T12:00:00Z"); // days left: Mar 1, 2, 3
+  const big = sprint({ target: 30 }); // 30 points / 2 whole days = 15/day
+
+  it("suggests a per_sprint habit on at most one day", () => {
+    const habits = [
+      habit("trip", { pointsKind: "per_log", pointsValue: 4, pointsLimit: "per_sprint" }),
+      habit("run", { pointsKind: "per_log", pointsValue: 1 }),
+    ];
+    for (let seed = 0; seed < 30; seed++) {
+      const days = suggestSprintPlan(big, habits, ctx, seeded(seed));
+      expect(days.map((d) => d.date)).toEqual(["2026-03-01", "2026-03-02", "2026-03-03"]);
+      const tripDays = days.filter((d) => d.items.some((i) => i.habitId === "trip"));
+      expect(tripDays.length).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("leaves out per_sprint habits already scored, and per_day ones done today", () => {
+    const habits = [
+      habit("trip", {
+        pointsKind: "per_log",
+        pointsValue: 4,
+        pointsLimit: "per_sprint",
+        logs: logs("trip", "2026-03-01T09:00:00Z"),
+      }),
+      habit("read", {
+        pointsKind: "per_log",
+        pointsValue: 2,
+        pointsLimit: "per_day",
+        logs: logs("read", "2026-03-01T10:00:00Z"),
+      }),
+      habit("run", { pointsKind: "per_log", pointsValue: 1 }),
+    ];
+    const days = suggestSprintPlan(big, habits, ctx, seeded(7));
+    expect(days.flatMap((d) => d.items).some((i) => i.habitId === "trip")).toBe(false);
+    expect(days[0]!.items.some((i) => i.habitId === "read")).toBe(false);
+  });
+
+  it("is empty once the target is hit", () => {
+    const h = habit("run", {
+      pointsKind: "per_log",
+      pointsValue: 50,
+      logs: logs("run", "2026-03-01T09:00:00Z"),
     });
+    expect(suggestSprintPlan(big, [h], ctx, seeded(1))).toEqual([]);
   });
 });

@@ -191,7 +191,11 @@ unit-bucket, color intensity scaled by that bucket's log count. Box size
 A habit can be worth points (`pointsKind` + `pointsValue`, a whole number
 ≥ 1), one kind at most:
 
-- **`per_log`** — N points every time it's logged.
+- **`per_log`** — N points every time it's logged, unless capped by
+  `pointsLimit`: `unlimited` (default, stored as `null`), `per_day` (scores
+  at most once per local calendar day), or `per_sprint` (at most once per
+  sprint). The cap only limits _scoring_ — the habit can still be logged
+  as often as you like.
 - **`clean_day`** — N points for every midnight (user's timezone) crossed
   with no log in the previous **24 hours** — a literal 24h window
   `[M − 24h, M)`, not "the previous calendar day", so on a DST day the
@@ -208,7 +212,12 @@ total? (N sprints affected)").
 
 - **Per-log points**: a log in the window earns its habit's value, and —
   logging rolls up, as with views — the value of every `per_log`
-  ancestor too.
+  ancestor too. Each habit's cap applies to its own scoring: a `per_day`
+  habit scores once for each local day with an in-window log of itself or
+  a descendant; a `per_sprint` one scores once if there's any.
+- **"Done" labels** (capped habits only): a `per_day` habit logged today
+  (itself or a descendant) shows "✓ Done today"; a `per_sprint` habit shows
+  "✓ Done: <sprint>" for each _active_ sprint it has already scored in.
 - **Clean-day points**: each midnight M with `startAt < M ≤ endAt` (and
   already passed) awards N if no log of the habit _or any descendant_
   falls in `[M − 24h, M)`. The 24h don't have to be inside the sprint.
@@ -229,7 +238,11 @@ total? (N sprints affected)").
   (shown "Run ×2"), and since logging a subhabit always logs its
   ancestors too, each suggested log names the point-earning parents it
   also counts for ("Also logs Exercise (+2)"); habits with direct logging
-  off are never suggested to log. A clean-day habit appears at most once, styled as a "Skip", and
+  off are never suggested to log. A capped habit is suggested at most once
+  per day (`per_day`) or once across the whole sprint (`per_sprint`), never
+  where it has already scored (today / this sprint), and a capped parent
+  only adds its points to the first suggested subhabit log that would
+  score it. A clean-day habit appears at most once, styled as a "Skip", and
   never alongside a log of itself or a descendant (that would break it).
   Not persisted — regenerated per visit and by **Reroll**.
 - The home page shows a card per upcoming/active sprint (total vs

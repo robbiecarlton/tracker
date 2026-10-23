@@ -17,6 +17,9 @@ describe("pointsChipLabel", () => {
   it("describes each kind", () => {
     expect(pointsChipLabel("per_log", 3)).toBe("+3 per log");
     expect(pointsChipLabel("clean_day", 5)).toBe("+5 per clean day");
+    expect(pointsChipLabel("per_log", 3, "unlimited")).toBe("+3 per log");
+    expect(pointsChipLabel("per_log", 3, "per_day")).toBe("+3 once a day");
+    expect(pointsChipLabel("per_log", 3, "per_sprint")).toBe("+3 once per sprint");
   });
 });
 
@@ -70,12 +73,21 @@ describe("suggestionLabel / suggestionDayLabel", () => {
 });
 
 describe("pointsEditWarning", () => {
-  const none = { pointsKind: null, pointsValue: null };
-  const three = { pointsKind: "per_log" as const, pointsValue: 3 };
+  const none = { pointsKind: null, pointsValue: null, pointsLimit: null };
+  const three = { pointsKind: "per_log" as const, pointsValue: 3, pointsLimit: null };
 
   it("is null when points didn't change", () => {
     expect(pointsEditWarning(three, three, [active], ctx)).toBeNull();
     expect(pointsEditWarning(none, {}, [active], ctx)).toBeNull();
+  });
+
+  it("treats a limit change as a change, but unlimited as no limit", () => {
+    expect(pointsEditWarning(three, { ...three, pointsLimit: "per_day" }, [active], ctx)).toMatch(
+      /1 sprint affected/,
+    );
+    expect(
+      pointsEditWarning(three, { ...three, pointsLimit: "unlimited" }, [active], ctx),
+    ).toBeNull();
   });
 
   it("is null with no active sprints", () => {

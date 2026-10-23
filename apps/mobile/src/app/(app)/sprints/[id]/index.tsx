@@ -1,10 +1,9 @@
 import {
   dailyAverageNeeded,
-  remainingSprintDates,
   remainingSprintDays,
   sprintPoints,
   sprintStatus,
-  suggestDailyPlan,
+  suggestSprintPlan,
   type SuggestionItem,
   type TimeContext,
 } from "@tracker/core";
@@ -65,10 +64,8 @@ export default function SprintDetail() {
       dailyTarget,
       status: sprintStatus(sprint, ctx),
       daysLeft: remainingSprintDays(sprint, ctx),
-      days: remainingSprintDates(sprint, ctx).map((date) => ({
-        date,
-        plan: dailyTarget > 0 ? suggestDailyPlan(habits, dailyTarget) : null,
-      })),
+      // Respects once-a-day / once-per-sprint caps across the days.
+      days: suggestSprintPlan(sprint, habits, ctx),
     };
     // rollKey is deliberately a dependency: changing it rerolls.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,13 +142,18 @@ export default function SprintDetail() {
               <Text style={styles.rerollText}>Reroll</Text>
             </Pressable>
           </View>
-          {view.days.map(({ date, plan }) => (
+          {view.days.map(({ date, items, total }) => (
             <View key={date} style={styles.day}>
               <View style={styles.dayHeader}>
                 <Text style={styles.dayTitle}>{suggestionDayLabel(date, view.ctx)}</Text>
-                {plan ? <Text style={styles.dayTotal}>{plan.total} pts</Text> : null}
+                <Text style={styles.dayTotal}>{total} pts</Text>
               </View>
-              {plan?.items.map((item) => (
+              {items.length === 0 ? (
+                <Text style={styles.muted}>
+                  Nothing left to suggest — every point-earning habit has hit its limit.
+                </Text>
+              ) : null}
+              {items.map((item) => (
                 <SuggestionRow key={item.habitId} item={item} nameOf={habitName} />
               ))}
             </View>

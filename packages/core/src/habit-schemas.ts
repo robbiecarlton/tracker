@@ -84,6 +84,7 @@ export const habitViewInputSchema = z
   });
 
 export const pointsKindSchema = z.enum(["per_log", "clean_day"]);
+export const pointsLimitSchema = z.enum(["unlimited", "per_day", "per_sprint"]);
 
 /**
  * `pointsKind` and `pointsValue` are set together or not at all (a habit
@@ -91,7 +92,7 @@ export const pointsKindSchema = z.enum(["per_log", "clean_day"]);
  * since Zod won't `.extend` an already-refined object.
  */
 function refinePoints(
-  habit: { pointsKind?: string | null; pointsValue?: number | null },
+  habit: { pointsKind?: string | null; pointsValue?: number | null; pointsLimit?: string | null },
   ctx: z.RefinementCtx,
 ) {
   if ((habit.pointsKind == null) !== (habit.pointsValue == null)) {
@@ -99,6 +100,18 @@ function refinePoints(
       code: "custom",
       message: "Enter a point value",
       path: ["pointsValue"],
+    });
+  }
+  // Only per-log points can be capped (clean days already score at most once a day).
+  if (
+    habit.pointsLimit != null &&
+    habit.pointsLimit !== "unlimited" &&
+    habit.pointsKind !== "per_log"
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Only per-log points can be limited",
+      path: ["pointsLimit"],
     });
   }
 }
@@ -142,6 +155,8 @@ const habitFormObject = z.object({
     .max(10000)
     .nullable()
     .optional(),
+  /** `per_log` only. Omitted or `null` means `unlimited`. */
+  pointsLimit: pointsLimitSchema.nullable().optional(),
 });
 
 export const habitFormSchema = habitFormObject.superRefine(refinePoints);
@@ -230,6 +245,7 @@ export const sprintFormSchema = z
     }
   });
 
+export type PointsLimitInput = z.infer<typeof pointsLimitSchema>;
 export type PointsKindInput = z.infer<typeof pointsKindSchema>;
 export type SprintFormInput = z.infer<typeof sprintFormSchema>;
 export type ViewKindInput = z.infer<typeof viewKindSchema>;

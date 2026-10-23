@@ -191,6 +191,7 @@ export default function Dashboard() {
           habit={habit}
           allHabits={allHabits}
           timeZone={user?.timeZone ?? "UTC"}
+          sprints={sprints}
           onChanged={refetch}
           onDragHandleLongPress={onDragHandleLongPress}
           dragHandleRef={dragHandleRef}
@@ -453,6 +454,7 @@ export default function Dashboard() {
           emptyMessage={flatEmptyMessage}
           allHabits={allHabits}
           timeZone={user?.timeZone ?? "UTC"}
+          sprints={sprints}
           onChanged={refetch}
         />
       ) : topLevelHabits.length === 0 ? (

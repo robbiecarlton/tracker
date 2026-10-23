@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-23
+
+### Added
+
+- `habit.points_limit` (migration `0008`) — a `per_log` habit's scoring
+  cap (`per_day` / `per_sprint`; `null` = unlimited). Habit create, edit,
+  and archive-and-clone accept and return `pointsLimit`; `unlimited` and
+  any limit on a non-`per_log` habit are stored as `null`.
+
 ## [0.7.0] - 2026-10-22
 
 ### Added

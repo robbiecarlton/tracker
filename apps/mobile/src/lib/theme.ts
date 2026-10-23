@@ -35,6 +35,9 @@ export const theme = {
       text: "#1a56b8",
       skipBackground: "#f3e8fd",
       skipText: "#6b21a8",
+      /** A capped habit that's already scored today / this sprint. */
+      doneBackground: "#e6f4ea",
+      doneText: "#137333",
     },
     /** Neutral marker — an "Archive log" badge, an archived-habit's status. */
     badge: {

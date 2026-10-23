@@ -1,5 +1,5 @@
 import type { DateTime } from "luxon";
-import type { Habit, HabitLog, PointSprint, PointsKind } from "./domain";
+import type { Habit, HabitLog, PointSprint, PointsKind, PointsLimit } from "./domain";
 import { getAncestors, getDescendants, type HabitNode } from "./habit-tree";
 import { nowInZone, parseInZone, startOfUnit, type TimeContext } from "./time";
 
@@ -18,7 +18,7 @@ import { nowInZone, parseInZone, startOfUnit, type TimeContext } from "./time";
 
 /** The fields points math needs — a mobile `ApiHabit` satisfies this. */
 export type PointsHabit = HabitNode &
-  Pick<Habit, "startDate" | "pointsKind" | "pointsValue" | "allowDirectLogging"> & {
+  Pick<Habit, "startDate" | "pointsKind" | "pointsValue" | "pointsLimit" | "allowDirectLogging"> & {
     logs: readonly HabitLog[];
   };
 
@@ -28,6 +28,14 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 function hasPoints(habit: PointsHabit): boolean {
   return habit.pointsKind != null && habit.pointsValue != null;
+}
+
+/** A `per_log` habit's cap, or `null` when it isn't capped (or isn't `per_log`). */
+function capOf(habit: PointsHabit): Exclude<PointsLimit, "unlimited"> | null {
+  if (habit.pointsKind !== "per_log") return null;
+  return habit.pointsLimit === "per_day" || habit.pointsLimit === "per_sprint"
+    ? habit.pointsLimit
+    : null;
 }
 
 /** `habitId`'s own logs plus every descendant's, archived or not (see top). */
@@ -98,7 +106,9 @@ function cleanDayAwards<T extends PointsHabit>(
  * A sprint's total, plus what each habit contributed (only habits that
  * earned > 0 appear in `byHabit`). A `per_log` habit earns its value for
  * every log of itself *or any descendant* in `[startAt, endAt)` — logging
- * rolls up, which is what "Double counting" flags.
+ * rolls up, which is what "Double counting" flags — limited by its
+ * `pointsLimit`: once per local calendar day with an in-window log
+ * (`per_day`), or once for the whole sprint (`per_sprint`).
  */
 export function sprintPoints<T extends PointsHabit>(
   sprint: Pick<PointSprint, "startAt" | "endAt">,
@@ -115,11 +125,17 @@ export function sprintPoints<T extends PointsHabit>(
     const value = habit.pointsValue!;
     let earned = 0;
     if (habit.pointsKind === "per_log") {
-      const count = subtreeLogs(habit, habits).filter((l) => {
-        const t = parseInZone(l.timestamp, ctx.timeZone).toMillis();
-        return t >= start && t < end;
-      }).length;
-      earned = count * value;
+      const inWindow = subtreeLogs(habit, habits)
+        .map((l) => parseInZone(l.timestamp, ctx.timeZone))
+        .filter((t) => t.toMillis() >= start && t.toMillis() < end);
+      const cap = capOf(habit);
+      const scoring =
+        cap === "per_sprint"
+          ? Math.min(1, inWindow.length)
+          : cap === "per_day"
+            ? new Set(inWindow.map((t) => t.toISODate())).size
+            : inWindow.length;
+      earned = scoring * value;
     } else {
       earned = cleanDayAwards(habit, habits, sprint, ctx) * value;
     }
@@ -182,6 +198,36 @@ export function remainingSprintDates(
 }
 
 /**
+ * For a capped `per_log` habit (the only kind that gets "already scored"
+ * labels): whether it — or any descendant, since logs roll up — was
+ * logged today (`per_day`), and which of `sprints` are active and already
+ * have a scoring log in them (`per_sprint`). Both empty/false otherwise.
+ */
+export function cappedPointsStatus<T extends PointsHabit>(
+  habit: T,
+  habits: readonly T[],
+  sprints: readonly Pick<PointSprint, "id" | "startAt" | "endAt">[],
+  ctx: TimeContext,
+): { doneToday: boolean; doneSprintIds: string[] } {
+  const cap = capOf(habit);
+  if (!cap || !hasPoints(habit)) return { doneToday: false, doneSprintIds: [] };
+  const times = subtreeLogs(habit, habits).map((l) => parseInZone(l.timestamp, ctx.timeZone));
+  if (cap === "per_day") {
+    const today = nowInZone(ctx).toISODate();
+    return { doneToday: times.some((t) => t.toISODate() === today), doneSprintIds: [] };
+  }
+  const doneSprintIds = sprints
+    .filter((s) => sprintStatus(s, ctx) === "active")
+    .filter((s) => {
+      const start = parseInZone(s.startAt, ctx.timeZone);
+      const end = parseInZone(s.endAt, ctx.timeZone);
+      return times.some((t) => t >= start && t < end);
+    })
+    .map((s) => s.id);
+  return { doneToday: false, doneSprintIds };
+}
+
+/**
  * Ids of every non-archived habit with points that also has a
  * non-archived ancestor or descendant with points — logging the lower one
  * earns both (or, for a clean-day ancestor, breaks its clean day), which
@@ -230,77 +276,139 @@ export interface SuggestionItem {
 /**
  * One random way to earn ≥ `target` points in a day: draws uniformly from
  * habits with points until the running sum reaches `target` (so it
- * usually overshoots a little). A `per_log` pick is worth its own value
- * plus every non-archived `per_log` ancestor's (logging rolls up), may
- * repeat, and is never drawn when direct logging is off. A `clean_day`
- * pick (a "skip") is drawn at most once, and never alongside a log of
- * itself or a descendant — that log would break its clean day. `rng`
- * returns [0, 1), like `Math.random`, so tests can seed it.
+ * usually overshoots a little).
+ *
+ * - A `per_log` pick is worth its own value plus every non-archived
+ *   `per_log` ancestor's (logging rolls up), may repeat, and is never
+ *   drawn when direct logging is off.
+ * - A capped habit (`per_day`/`per_sprint`) scores once: after that it's
+ *   never drawn again, and as an ancestor it adds nothing more. Habits in
+ *   `exhausted` (already scored today / this sprint) start out that way.
+ *   The returned `exhausted` adds this day's capped picks, so a caller can
+ *   carry `per_sprint` ones into the next day (`suggestSprintPlan`).
+ * - A `clean_day` pick (a "skip") is drawn at most once, and never
+ *   alongside a log of itself or a descendant — that log would break it.
+ *
+ * `rng` returns [0, 1), like `Math.random`, so tests can seed it.
  */
 export function suggestDailyPlan<T extends PointsHabit>(
   habits: readonly T[],
   target: number,
   rng: () => number = Math.random,
-): { items: SuggestionItem[]; total: number } {
+  exhausted: ReadonlySet<string> = new Set(),
+): { items: SuggestionItem[]; total: number; exhausted: Set<string> } {
   const active = habits.filter((h) => !h.archivedAt);
+  const isPerLog = (h: T) => h.pointsKind === "per_log" && h.pointsValue != null;
   const logOptions = active
-    .filter((h) => h.pointsKind === "per_log" && h.pointsValue != null && h.allowDirectLogging)
+    .filter((h) => isPerLog(h) && h.allowDirectLogging)
     .map((h) => {
       const ancestors = getAncestors(h.id, habits);
-      const rollup = ancestors
-        .filter((a) => !a.archivedAt && a.pointsKind === "per_log" && a.pointsValue != null)
-        .map((a) => ({ habitId: a.id, points: a.pointsValue! }));
       return {
         habit: h,
-        rollup,
-        worth: h.pointsValue! + rollup.reduce((sum, r) => sum + r.points, 0),
+        // Root first, so `alsoEarns` lists parents top-down.
+        rollup: ancestors.filter((a) => !a.archivedAt && isPerLog(a)),
         // Clean-day habits a log of this one would break: itself and ancestors.
         breaks: new Set([h.id, ...ancestors.map((a) => a.id)]),
       };
     });
-  const skipOptions = active
-    .filter((h) => h.pointsKind === "clean_day" && h.pointsValue != null)
-    .map((h) => ({ habit: h, worth: h.pointsValue!, rollup: [] }));
+  const skipOptions = active.filter((h) => h.pointsKind === "clean_day" && h.pointsValue != null);
 
+  const used = new Set(exhausted);
   const items = new Map<string, SuggestionItem>();
   const skipped = new Set<string>();
   const broken = new Set<string>();
   let total = 0;
 
+  /** What `habit` would score right now, given caps already used up. */
+  const scoreNow = (habit: T) => (used.has(habit.id) ? 0 : habit.pointsValue!);
+
   while (total < target) {
     const choices = [
       ...logOptions
-        .filter((o) => ![...o.breaks].some((id) => skipped.has(id)))
+        .filter((o) => !used.has(o.habit.id) && ![...o.breaks].some((id) => skipped.has(id)))
         .map((o) => ({ kind: "per_log" as const, ...o })),
       ...skipOptions
-        .filter((o) => !skipped.has(o.habit.id) && !broken.has(o.habit.id))
-        .map((o) => ({ kind: "clean_day" as const, ...o })),
+        .filter((h) => !skipped.has(h.id) && !broken.has(h.id))
+        .map((h) => ({ kind: "clean_day" as const, habit: h, rollup: [] as T[], breaks: null })),
     ];
     if (choices.length === 0) break;
     const pick = choices[Math.min(choices.length - 1, Math.floor(rng() * choices.length))]!;
 
+    const shares = pick.rollup
+      .map((a) => ({ habitId: a.id, points: scoreNow(a) }))
+      .filter((s) => s.points > 0);
+    const worth = scoreNow(pick.habit) + shares.reduce((sum, s) => sum + s.points, 0);
+
     if (pick.kind === "per_log") {
-      for (const id of logOptions.find((o) => o.habit.id === pick.habit.id)!.breaks) {
-        broken.add(id);
-      }
+      for (const id of pick.breaks!) broken.add(id);
+      for (const h of [pick.habit, ...pick.rollup]) if (capOf(h)) used.add(h.id);
     } else {
       skipped.add(pick.habit.id);
     }
+
     const existing = items.get(pick.habit.id);
     if (existing) {
       existing.count += 1;
-      existing.points += pick.worth;
-      existing.alsoEarns.forEach((share, i) => (share.points += pick.rollup[i]!.points));
+      existing.points += worth;
+      for (const share of shares) {
+        const prior = existing.alsoEarns.find((a) => a.habitId === share.habitId);
+        if (prior) prior.points += share.points;
+        else existing.alsoEarns.push(share);
+      }
     } else {
       items.set(pick.habit.id, {
         habitId: pick.habit.id,
         kind: pick.kind,
         count: 1,
-        points: pick.worth,
-        alsoEarns: pick.rollup.map((r) => ({ ...r })),
+        points: worth,
+        alsoEarns: shares,
       });
     }
-    total += pick.worth;
+    total += worth;
   }
-  return { items: [...items.values()], total };
+  return { items: [...items.values()], total, exhausted: used };
+}
+
+/**
+ * Suggestions for every remaining day of `sprint` (`remainingSprintDates`),
+ * each aiming for the daily average rounded up. Caps carry through:
+ * `per_sprint` habits that already scored in this sprint never appear, and
+ * one suggested on an earlier day isn't suggested again; `per_day` habits
+ * that already scored today are left out of today's list.
+ */
+export function suggestSprintPlan<T extends PointsHabit>(
+  sprint: Pick<PointSprint, "startAt" | "endAt" | "target">,
+  habits: readonly T[],
+  ctx: TimeContext,
+  rng: () => number = Math.random,
+): { date: string; items: SuggestionItem[]; total: number }[] {
+  const { total } = sprintPoints(sprint, habits, ctx);
+  const target = Math.ceil(dailyAverageNeeded(sprint, total, ctx));
+  if (target === 0) return [];
+
+  const start = parseInZone(sprint.startAt, ctx.timeZone);
+  const end = parseInZone(sprint.endAt, ctx.timeZone);
+  const today = nowInZone(ctx).toISODate();
+  const sprintUsed = new Set<string>();
+  const todayUsed = new Set<string>();
+  for (const habit of habits) {
+    const cap = capOf(habit);
+    if (!cap || !hasPoints(habit)) continue;
+    for (const log of subtreeLogs(habit, habits)) {
+      const t = parseInZone(log.timestamp, ctx.timeZone);
+      if (t < start || t >= end) continue;
+      if (cap === "per_sprint") sprintUsed.add(habit.id);
+      if (cap === "per_day" && t.toISODate() === today) todayUsed.add(habit.id);
+    }
+  }
+
+  return remainingSprintDates(sprint, ctx).map((date) => {
+    const exhausted = new Set([...sprintUsed, ...(date === today ? todayUsed : [])]);
+    const plan = suggestDailyPlan(habits, target, rng, exhausted);
+    for (const id of plan.exhausted) {
+      const habit = habits.find((h) => h.id === id);
+      if (habit && capOf(habit) === "per_sprint") sprintUsed.add(id);
+    }
+    return { date, items: plan.items, total: plan.total };
+  });
 }

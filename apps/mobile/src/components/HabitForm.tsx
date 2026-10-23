@@ -7,6 +7,7 @@ import {
   type HabitViewInput,
   type HeatmapPolarity,
   type PointsKind,
+  type PointsLimit,
   type TargetType,
   type Unit,
   type ViewKind,
@@ -46,6 +47,13 @@ const POINTS_CHOICE_LABELS: Record<PointsChoice, string> = {
   none: "None",
   per_log: "Per log",
   clean_day: "Per clean day",
+};
+
+const POINTS_LIMITS: PointsLimit[] = ["unlimited", "per_day", "per_sprint"];
+const POINTS_LIMIT_LABELS: Record<PointsLimit, string> = {
+  unlimited: "Every log",
+  per_day: "Once a day",
+  per_sprint: "Once per sprint",
 };
 
 /** One editable view row's local state — numeric fields as text for the input. */
@@ -218,6 +226,7 @@ export function HabitForm({
   initialAllowDirectLogging = true,
   initialPointsKind = null,
   initialPointsValue = null,
+  initialPointsLimit = null,
   habitId,
   habits,
   submitLabel,
@@ -232,6 +241,7 @@ export function HabitForm({
   initialAllowDirectLogging?: boolean;
   initialPointsKind?: PointsKind | null;
   initialPointsValue?: number | null;
+  initialPointsLimit?: PointsLimit | null;
   /** Undefined when creating — there's no habit yet to exclude from its own parent picker. */
   habitId?: string;
   /** The user's full habit list — powers the parent picker and the direct-logging toggle's
@@ -256,6 +266,7 @@ export function HabitForm({
   const [pointsValue, setPointsValue] = useState(
     initialPointsValue != null ? String(initialPointsValue) : "",
   );
+  const [pointsLimit, setPointsLimit] = useState<PointsLimit>(initialPointsLimit ?? "unlimited");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string>();
@@ -288,6 +299,8 @@ export function HabitForm({
       pointsKind: pointsChoice === "none" ? null : pointsChoice,
       // Blank stays null so the schema's "kind needs a value" message shows.
       pointsValue: pointsChoice === "none" || !pointsValue.trim() ? null : Number(pointsValue),
+      // Only per-log points can be capped.
+      pointsLimit: pointsChoice === "per_log" ? pointsLimit : null,
     });
     if (!parsed.success) {
       setErrors(fieldErrors(parsed.error));
@@ -371,6 +384,19 @@ export function HabitForm({
             keyboardType="number-pad"
             error={errors.pointsValue}
           />
+        ) : null}
+        {pointsChoice === "per_log" ? (
+          <View style={styles.subField}>
+            <Text style={styles.subLabel}>
+              How often logging scores (you can always log it more)
+            </Text>
+            <ChipRow
+              options={POINTS_LIMITS}
+              value={pointsLimit}
+              onChange={setPointsLimit}
+              labels={POINTS_LIMIT_LABELS}
+            />
+          </View>
         ) : null}
       </View>
 

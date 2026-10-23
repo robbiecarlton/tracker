@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-23
+
+### Added
+
+- Per-log habits can now cap how often they score: every log, once a day,
+  or once per sprint (a new choice in the habit form's Points section).
+  You can still log them as often as you like. The points chip says which
+  ("+3 once a day"), and capped habits that have already scored show
+  "✓ Done today" or "✓ Done: <sprint>" for each active sprint.
+- Sprint suggestions respect the caps: capped habits appear at most once a
+  day / once per sprint, never where they've already scored, and a capped
+  parent's points only count toward the first subhabit log.
+
+### Changed
+
+- The "change points during an active sprint" warning also covers
+  changing the cap.
+
 ## [0.13.2] - 2026-10-22
 
 ### Fixed

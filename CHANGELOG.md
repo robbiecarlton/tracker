@@ -9,6 +9,18 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-10-23 — Point caps: once a day / once per sprint
+
+**`@tracker/core` 0.14.0**: `PointsLimit` on per-log habits, applied in
+`sprintPoints`; `cappedPointsStatus` for "done" labels; cap-aware
+suggestions (`suggestDailyPlan`, new `suggestSprintPlan`).
+
+**`@tracker/backend` 0.8.0**: `habit.points_limit` (migration `0008`).
+
+**`@tracker/mobile` 0.14.0**: a "how often logging scores" choice on the
+habit form, cap-aware chips and "✓ Done today" / "✓ Done: <sprint>"
+labels, and suggestions that respect caps.
+
 ## 2026-10-22 — Sprint cards no longer clipped
 
 **`@tracker/mobile` 0.13.2**: home-page sprint cards wrap and fill the
