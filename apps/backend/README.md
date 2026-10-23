@@ -44,12 +44,19 @@ npm run dev                     # tsx watch on http://localhost:4000
 | POST   | `/api/habits/:id/archive`           | yes  | sets `archivedAt`; `404` if not the caller's                                                            |
 | POST   | `/api/habits/:id/unarchive`         | yes  | clears `archivedAt`                                                                                     |
 | POST   | `/api/habits/:id/archive-and-clone` | yes  | archives the habit as-is (logs stay put) and creates a fresh one from the submitted config              |
+| GET    | `/api/sprints`                      | yes  | the caller's Point Sprints (all of them, ordered by start)                                              |
+| POST   | `/api/sprints`                      | yes  | create a sprint                                                                                         |
+| PATCH  | `/api/sprints/:id`                  | yes  | update (full replace); `404` if not the caller's                                                        |
+| DELETE | `/api/sprints/:id`                  | yes  | delete; `404` if not the caller's                                                                       |
 
 Request bodies are validated with `@tracker/core`'s `habit-schemas.ts` — the
 same schemas the mobile app's forms use. View calculations (cumulative,
 streak, percentage, days, since) are **not** computed here; the client
 computes them from the raw data via `@tracker/core`. Archived habits are
 returned unfiltered by `GET /api/habits` — the client decides what to show.
+Sprint totals, likewise, are computed client-side (`@tracker/core`'s
+`points.ts`); the backend only stores each habit's `pointsKind`/`pointsValue`
+and each sprint's window and target.
 
 ## Database commands
 

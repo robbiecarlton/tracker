@@ -29,6 +29,13 @@ export const theme = {
       border: "#f5a623",
       text: "#7a4a00",
     },
+    /** Point Sprints: a habit's points chip, and "skip" suggestions. */
+    points: {
+      background: "#e8f0fe",
+      text: "#1a56b8",
+      skipBackground: "#f3e8fd",
+      skipText: "#6b21a8",
+    },
     /** Neutral marker — an "Archive log" badge, an archived-habit's status. */
     badge: {
       background: "#eceef1",

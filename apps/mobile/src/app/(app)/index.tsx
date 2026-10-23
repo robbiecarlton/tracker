@@ -1,4 +1,10 @@
-import { childrenOf, getDescendants } from "@tracker/core";
+import {
+  childrenOf,
+  filterHabitsByPoints,
+  getDescendants,
+  sprintStatus,
+  type PointsFilter,
+} from "@tracker/core";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -20,10 +26,13 @@ import {
 } from "react-native-draggable-flatlist";
 import { reorderHabits } from "@/api/habits";
 import type { ApiHabit } from "@/api/types";
+import { ChipRow } from "@/components/ChipRow";
 import { HabitCard } from "@/components/HabitCard";
 import { SearchResults } from "@/components/SearchResults";
+import { SprintCard } from "@/components/SprintCard";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHabits } from "@/hooks/useHabits";
+import { useSprints } from "@/hooks/useSprints";
 import { signOut } from "@/lib/auth";
 import {
   getCollapsedContentHabitIds,
@@ -39,6 +48,12 @@ export default function Dashboard() {
   const router = useRouter();
   const { user } = useCurrentUser();
   const { habits: allHabits, loading, error, refetch, setHabits } = useHabits();
+  const { sprints, refetch: refetchSprints } = useSprints();
+  // Points filter — local and unsaved, like search. Only narrows which
+  // habits render; every calculation still runs over `allHabits`.
+  const [pointsFilter, setPointsFilter] = useState<PointsFilter>("all");
+  const treeHabits = filterHabitsByPoints(allHabits, pointsFilter);
+  const dragEnabled = pointsFilter === "all";
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   // Separate from `collapsed` above (which hides a habit's *subhabits*):
   // this hides a habit's own tiles/heatmap/actions/Edit-links while
@@ -64,6 +79,7 @@ export default function Dashboard() {
   useFocusEffect(
     useCallback(() => {
       refetch();
+      refetchSprints();
       // Search is intentionally page-local, ephemeral state: leaving the
       // dashboard (blur) always clears it, so coming back is always a
       // fresh, unfiltered view.
@@ -152,11 +168,11 @@ export default function Dashboard() {
      * own subhabits below. */
     depth?: number;
   }) {
-    const childHabits = childrenOf(habit.id, allHabits).filter((h) => !h.archivedAt);
+    const childHabits = childrenOf(habit.id, treeHabits).filter((h) => !h.archivedAt);
     // All descendants (grandchildren etc.), not just direct children — the
     // label reflects everything that appears when expanded, not just the
     // immediate next level.
-    const descendantCount = getDescendants(habit.id, allHabits).filter(
+    const descendantCount = getDescendants(habit.id, treeHabits).filter(
       (d) => !d.habit.archivedAt,
     ).length;
     const childrenHidden = collapsed.has(habit.id);
@@ -175,8 +191,10 @@ export default function Dashboard() {
           allHabits={allHabits}
           timeZone={user?.timeZone ?? "UTC"}
           onChanged={refetch}
-          onDragHandleLongPress={onDragHandleLongPress}
-          dragHandleRef={dragHandleRef}
+          // A filtered group is only part of its real sibling group, and
+          // reorder needs the whole group — so no dragging while filtered.
+          onDragHandleLongPress={dragEnabled ? onDragHandleLongPress : undefined}
+          dragHandleRef={dragEnabled ? dragHandleRef : undefined}
           contentCollapsed={contentCollapsed.has(habit.id)}
           onToggleContentCollapsed={() => toggleContentCollapsed(habit.id)}
         />
@@ -319,7 +337,9 @@ export default function Dashboard() {
     );
   }
 
-  const topLevelHabits = childrenOf(null, allHabits).filter((h) => !h.archivedAt);
+  const topLevelHabits = childrenOf(null, treeHabits).filter((h) => !h.archivedAt);
+  const sprintNow = { now: new Date().toISOString(), timeZone: user?.timeZone ?? "UTC" };
+  const currentSprints = sprints.filter((s) => sprintStatus(s, sprintNow) !== "ended");
 
   async function onSignOut() {
     await signOut();
@@ -331,6 +351,9 @@ export default function Dashboard() {
       <View style={styles.header}>
         <Text style={styles.heading}>Habits</Text>
         <View style={styles.headerLinks}>
+          <Pressable accessibilityRole="button" onPress={() => router.push("/sprints/past")}>
+            <Text style={styles.archivedLink}>Past sprints</Text>
+          </Pressable>
           <Pressable accessibilityRole="button" onPress={() => router.push("/habits/archived")}>
             <Text style={styles.archivedLink}>Archived</Text>
           </Pressable>
@@ -339,6 +362,37 @@ export default function Dashboard() {
           </Pressable>
         </View>
       </View>
+
+      <View style={styles.sprintsHeader}>
+        <Text style={styles.sprintsTitle}>Point sprints</Text>
+        <Pressable accessibilityRole="button" onPress={() => router.push("/sprints/new")}>
+          <Text style={styles.planSprintLink}>+ Plan sprint</Text>
+        </Pressable>
+      </View>
+      {currentSprints.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.sprintsScroll}
+          contentContainerStyle={styles.sprintsRow}
+        >
+          {currentSprints.map((sprint) => (
+            <View key={sprint.id} style={styles.sprintCardWrap}>
+              <SprintCard
+                sprint={sprint}
+                habits={allHabits}
+                timeZone={user?.timeZone ?? "UTC"}
+                onPress={() =>
+                  router.push({ pathname: "/sprints/[id]", params: { id: sprint.id } })
+                }
+                onEdit={() =>
+                  router.push({ pathname: "/sprints/[id]/edit", params: { id: sprint.id } })
+                }
+              />
+            </View>
+          ))}
+        </ScrollView>
+      ) : null}
 
       <View style={styles.searchRow}>
         <TextInput
@@ -362,6 +416,15 @@ export default function Dashboard() {
         ) : null}
       </View>
 
+      <View style={styles.filterRow}>
+        <ChipRow
+          options={["all", "points", "no_points"] as const}
+          value={pointsFilter}
+          onChange={setPointsFilter}
+          labels={{ all: "All", points: "Earns points", no_points: "No points" }}
+        />
+      </View>
+
       {loading && topLevelHabits.length === 0 ? (
         <ActivityIndicator style={styles.spinner} />
       ) : error ? (
@@ -372,9 +435,18 @@ export default function Dashboard() {
           allHabits={allHabits}
           timeZone={user?.timeZone ?? "UTC"}
           onChanged={refetch}
+          include={(h) =>
+            pointsFilter === "all" || (h.pointsKind != null) === (pointsFilter === "points")
+          }
         />
       ) : topLevelHabits.length === 0 ? (
-        <Text style={styles.empty}>No habits yet — tap &ldquo;+ New&rdquo; to add one.</Text>
+        <Text style={styles.empty}>
+          {pointsFilter === "all"
+            ? "No habits yet — tap \u201c+ New\u201d to add one."
+            : pointsFilter === "points"
+              ? "No habits earn points yet."
+              : "Every habit earns points."}
+        </Text>
       ) : Platform.OS === "web" ? (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {siblingGroup({ habits: topLevelHabits, parentId: null })}
@@ -405,6 +477,20 @@ const styles = StyleSheet.create({
   headerLinks: { flexDirection: "row", alignItems: "center", gap: 16 },
   archivedLink: { color: theme.colors.text.muted, fontSize: 14 },
   addLink: { color: theme.colors.brand, fontWeight: "600", fontSize: 16 },
+  sprintsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  sprintsTitle: { fontSize: 13, fontWeight: "600", color: theme.colors.text.secondary },
+  planSprintLink: { color: theme.colors.brand, fontWeight: "600", fontSize: 14 },
+  // Horizontal so any number of overlapping sprints stays one row tall.
+  sprintsScroll: { flexGrow: 0, marginBottom: 12 },
+  sprintsRow: { paddingHorizontal: 20, gap: 10 },
+  sprintCardWrap: { width: 260 },
+  filterRow: { paddingHorizontal: 20, marginBottom: 12 },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",

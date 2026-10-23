@@ -6,6 +6,7 @@ import {
   type HabitFormInput,
   type HabitViewInput,
   type HeatmapPolarity,
+  type PointsKind,
   type TargetType,
   type Unit,
   type ViewKind,
@@ -37,6 +38,14 @@ const HEATMAP_POLARITY_LABELS: Record<HeatmapPolarity, string> = {
   neutral: "Neutral",
   positive: "Positive",
   negative: "Negative",
+};
+
+type PointsChoice = PointsKind | "none";
+const POINTS_CHOICES: PointsChoice[] = ["none", "per_log", "clean_day"];
+const POINTS_CHOICE_LABELS: Record<PointsChoice, string> = {
+  none: "None",
+  per_log: "Per log",
+  clean_day: "Per clean day",
 };
 
 /** One editable view row's local state — numeric fields as text for the input. */
@@ -207,6 +216,8 @@ export function HabitForm({
   initialViews,
   initialParentId = null,
   initialAllowDirectLogging = true,
+  initialPointsKind = null,
+  initialPointsValue = null,
   habitId,
   habits,
   submitLabel,
@@ -219,6 +230,8 @@ export function HabitForm({
   initialViews: ViewRow[];
   initialParentId?: string | null;
   initialAllowDirectLogging?: boolean;
+  initialPointsKind?: PointsKind | null;
+  initialPointsValue?: number | null;
   /** Undefined when creating — there's no habit yet to exclude from its own parent picker. */
   habitId?: string;
   /** The user's full habit list — powers the parent picker and the direct-logging toggle's
@@ -239,6 +252,10 @@ export function HabitForm({
   const [views, setViews] = useState<ViewRow[]>(initialViews);
   const [parentId, setParentId] = useState<string | null>(initialParentId);
   const [allowDirectLogging, setAllowDirectLogging] = useState(initialAllowDirectLogging);
+  const [pointsChoice, setPointsChoice] = useState<PointsChoice>(initialPointsKind ?? "none");
+  const [pointsValue, setPointsValue] = useState(
+    initialPointsValue != null ? String(initialPointsValue) : "",
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string>();
@@ -268,6 +285,9 @@ export function HabitForm({
       views: views.map(rowToInput),
       parentId,
       allowDirectLogging,
+      pointsKind: pointsChoice === "none" ? null : pointsChoice,
+      // Blank stays null so the schema's "kind needs a value" message shows.
+      pointsValue: pointsChoice === "none" || !pointsValue.trim() ? null : Number(pointsValue),
     });
     if (!parsed.success) {
       setErrors(fieldErrors(parsed.error));
@@ -330,6 +350,29 @@ export function HabitForm({
           </Text>
         </View>
       ) : null}
+
+      <View style={styles.field}>
+        <Text style={styles.label}>Points</Text>
+        <ChipRow
+          options={POINTS_CHOICES}
+          value={pointsChoice}
+          onChange={setPointsChoice}
+          labels={POINTS_CHOICE_LABELS}
+        />
+        {pointsChoice !== "none" ? (
+          <Field
+            label={
+              pointsChoice === "per_log"
+                ? "Points each time it's logged"
+                : "Points for each midnight with no log in the previous 24 hours"
+            }
+            value={pointsValue}
+            onChangeText={setPointsValue}
+            keyboardType="number-pad"
+            error={errors.pointsValue}
+          />
+        ) : null}
+      </View>
 
       {views.map((row, i) => (
         <ViewRowEditor

@@ -2,6 +2,7 @@ import {
   aggregatedLogs,
   computeHabitView,
   computeHighlight,
+  doubleCountedHabitIds,
   getAncestors,
   type HabitLog,
   type HabitView,
@@ -14,6 +15,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { createLog } from "@/api/habits";
 import type { ApiHabit } from "@/api/types";
 import { confirmAlert } from "@/lib/confirm";
+import { pointsChipLabel } from "@/lib/points-format";
 import { theme } from "@/lib/theme";
 import {
   formatViewValue,
@@ -137,6 +139,28 @@ export function HabitCard({
     }
   }
 
+  // Points chip, plus the orange flag when an ancestor or descendant also
+  // earns points (a log here would count toward both — see `points.ts`).
+  const doubleCounted = useMemo(
+    () => doubleCountedHabitIds(allHabits).has(habit.id),
+    [allHabits, habit.id],
+  );
+  const pointsBadges =
+    habit.pointsKind && habit.pointsValue != null ? (
+      <View style={styles.badges}>
+        <View style={styles.pointsChip}>
+          <Text style={styles.pointsChipText}>
+            {pointsChipLabel(habit.pointsKind, habit.pointsValue)}
+          </Text>
+        </View>
+        {doubleCounted ? (
+          <View style={styles.doubleCountChip}>
+            <Text style={styles.doubleCountChipText}>Double counting</Text>
+          </View>
+        ) : null}
+      </View>
+    ) : null;
+
   const dragHandle =
     onDragHandleLongPress || dragHandleRef ? (
       <Pressable
@@ -207,6 +231,7 @@ export function HabitCard({
             <View style={styles.collapsedActions}>{logAndNoteActions}</View>
           ) : null}
         </View>
+        {pointsBadges}
       </View>
     );
   }
@@ -236,6 +261,8 @@ export function HabitCard({
           </Pressable>
         </View>
       </View>
+
+      {pointsBadges}
 
       <View style={styles.tiles}>
         {habit.views
@@ -311,6 +338,23 @@ const styles = StyleSheet.create({
   editLink: { color: theme.colors.brand, fontWeight: "600", fontSize: 14 },
   addSubhabitLink: { color: theme.colors.text.muted, fontSize: 13 },
   tiles: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  badges: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  pointsChip: {
+    backgroundColor: theme.colors.points.background,
+    borderRadius: 999,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+  },
+  pointsChipText: { fontSize: 12, fontWeight: "600", color: theme.colors.points.text },
+  doubleCountChip: {
+    backgroundColor: theme.colors.warning.background,
+    borderColor: theme.colors.warning.border,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingVertical: 1,
+    paddingHorizontal: 8,
+  },
+  doubleCountChipText: { fontSize: 12, fontWeight: "600", color: theme.colors.warning.text },
   heatmapSection: { gap: 4 },
   heatmapLabel: { fontSize: 11, color: theme.colors.text.muted },
   actions: { flexDirection: "row", alignItems: "center", gap: 16 },

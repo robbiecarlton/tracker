@@ -28,6 +28,7 @@ the Heatmap view (all below) landed after Phase 4 — see
 | `parentId`           | Nested habits (below). `null` = top-level.                                                     |
 | `allowDirectLogging` | Nested habits (below). Defaults `true`.                                                        |
 | `sortOrder`          | Custom sort order (below). Relative to other habits sharing `parentId` only.                   |
+| `pointsKind/Value`   | Points & sprints (below). Both `null` (no points) or both set.                                 |
 | logs                 | Zero or more.                                                                                  |
 
 ### Log
@@ -184,6 +185,57 @@ unit-bucket, color intensity scaled by that bucket's log count. Box size
   Days/Percentage target-highlight system (a heatmap has no target).
 - Like every other view, a heatmap's counts include a habit's own logs
   plus every non-archived subhabit's (nested habits' rollup, above).
+
+## Points & sprints
+
+A habit can be worth points (`pointsKind` + `pointsValue`, a whole number
+≥ 1), one kind at most:
+
+- **`per_log`** — N points every time it's logged.
+- **`clean_day`** — N points for every midnight (user's timezone) crossed
+  with no log in the previous **24 hours** — a literal 24h window
+  `[M − 24h, M)`, not "the previous calendar day", so on a DST day the
+  window can reach back past local midnight. Midnights whose window starts
+  before the habit's start date don't count.
+
+A **Point Sprint** is a window `[startAt, endAt)` with a points `target`
+(and an optional name). Any number may overlap. Everything below is
+computed live, client-side, in `@tracker/core`'s `points.ts` — nothing
+earned is stored, so editing a habit's point value retroactively changes
+every sprint's total (the habit edit form warns first when any sprint is
+active: "There are active sprints, are you sure you want to change this
+total? (N sprints affected)").
+
+- **Per-log points**: a log in the window earns its habit's value, and —
+  logging rolls up, as with views — the value of every `per_log`
+  ancestor too.
+- **Clean-day points**: each midnight M with `startAt < M ≤ endAt` (and
+  already passed) awards N if no log of the habit _or any descendant_
+  falls in `[M − 24h, M)`. The 24h don't have to be inside the sprint.
+- **Archived habits** still count, unlike views: their logs are facts,
+  and archive-and-clone (a start-date change) shouldn't take points away
+  mid-sprint. A clean-day habit stops earning at its own `archivedAt`.
+- **Double counting**: any non-archived habit with points that has a
+  non-archived ancestor or descendant with points is flagged — an orange
+  "Double counting" label on both — since one log then counts for both.
+- **Points needed per day** is conservative: remaining points
+  (`target − total`, floored at 0) ÷ remaining **whole** days, rounded
+  down — `floor((endAt − max(now, startAt)) / 24h)`, but at least 1 until
+  the sprint ends.
+- **Suggestions** (a sprint's own screen): for each remaining calendar
+  day, a random set of point-earning habits whose points reach the daily
+  average rounded **up** (overshooting is fine). Drawn uniformly; a log
+  is worth its own plus its `per_log` ancestors' values and may repeat
+  (shown "Run ×2"); habits with direct logging off are never suggested to
+  log. A clean-day habit appears at most once, styled as a "Skip", and
+  never alongside a log of itself or a descendant (that would break it).
+  Not persisted — regenerated per visit and by **Reroll**.
+- The home page shows a card per upcoming/active sprint (total vs
+  target, per-day needed, dates, Edit); ended sprints move to **Past
+  sprints** (final total, hit/missed). The home page can also be
+  filtered to habits that earn points, or those that don't — matching
+  habits stay nested under their (unfiltered) ancestors, and dragging is
+  off while filtered.
 
 ## Offline (Phase 5)
 

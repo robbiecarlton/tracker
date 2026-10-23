@@ -9,7 +9,9 @@ import { HabitForm, rowFromView } from "@/components/HabitForm";
 import { BackButton, Screen } from "@/components/ui";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHabits } from "@/hooks/useHabits";
+import { useSprints } from "@/hooks/useSprints";
 import { confirmAlert, type ConfirmButton } from "@/lib/confirm";
+import { pointsEditWarning } from "@/lib/points-format";
 import { theme } from "@/lib/theme";
 
 /** How to resolve a habit's active subhabits when it's deleted or archived — mirrors the backend's `childrenAction`. */
@@ -68,6 +70,16 @@ function confirmChildrenAction(
   confirmAlert(`"${target.name}" has subhabits`, `${list}\n\nWhat should happen to them?`, buttons);
 }
 
+/** `confirmAlert` as a promise: true for `confirmText`, false for Cancel/dismiss. */
+function confirmAsync(title: string, message: string, confirmText: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    confirmAlert(title, message, [
+      { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+      { text: confirmText, onPress: () => resolve(true) },
+    ]);
+  });
+}
+
 /** True if an `ApiError`'s body contains this backend error code, whatever its exact shape. */
 function isApiErrorCode(err: unknown, code: string): boolean {
   return err instanceof ApiError && JSON.stringify(err.body).includes(code);
@@ -78,11 +90,14 @@ export default function EditHabit() {
   const router = useRouter();
   const { user } = useCurrentUser();
   const { habits, loading, refetch } = useHabits();
+  const { sprints, refetch: refetchSprints } = useSprints();
   const habit = habits.find((h) => h.id === id);
 
   useFocusEffect(
     useCallback(() => {
       refetch();
+      // For the "active sprints affected" warning on a points change.
+      refetchSprints();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   );
@@ -192,9 +207,19 @@ export default function EditHabit() {
       initialViews={habit.views.map(rowFromView)}
       initialParentId={habit.parentId}
       initialAllowDirectLogging={habit.allowDirectLogging}
+      initialPointsKind={habit.pointsKind}
+      initialPointsValue={habit.pointsValue}
       submitLabel="Save"
       timeZone={user?.timeZone ?? "UTC"}
       onSubmit={async (input) => {
+        // Sprint totals are computed live from current point values, so
+        // changing them rewrites every active sprint's total — confirm first.
+        const warning = pointsEditWarning(habit, input, sprints, {
+          now: new Date().toISOString(),
+          timeZone: user?.timeZone ?? "UTC",
+        });
+        if (warning && !(await confirmAsync("Change points?", warning, "Change"))) return;
+
         const startDateChanged = input.startDate !== habit.startDate.slice(0, 10);
         // Same conversion the backend applies, so client and server always
         // agree on which logs "predate" the new date.

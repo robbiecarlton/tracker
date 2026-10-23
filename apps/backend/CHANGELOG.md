@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-22
+
+### Added
+
+- `habit.points_kind`/`habit.points_value` (with a both-or-neither CHECK)
+  and a `point_sprint` table — migration `0007`. Habit create, edit, and
+  archive-and-clone accept and return the points fields.
+- `GET/POST /api/sprints`, `PATCH/DELETE /api/sprints/:id` — user-scoped
+  Point Sprint persistence; totals stay client-side.
+
 ## [0.6.0] - 2026-09-14
 
 ### Added

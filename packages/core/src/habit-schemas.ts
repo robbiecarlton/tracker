@@ -83,7 +83,27 @@ export const habitViewInputSchema = z
     }
   });
 
-export const habitFormSchema = z.object({
+export const pointsKindSchema = z.enum(["per_log", "clean_day"]);
+
+/**
+ * `pointsKind` and `pointsValue` are set together or not at all (a habit
+ * earns no points). Applied to both habit schemas below as a refinement,
+ * since Zod won't `.extend` an already-refined object.
+ */
+function refinePoints(
+  habit: { pointsKind?: string | null; pointsValue?: number | null },
+  ctx: z.RefinementCtx,
+) {
+  if ((habit.pointsKind == null) !== (habit.pointsValue == null)) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Enter a point value",
+      path: ["pointsValue"],
+    });
+  }
+}
+
+const habitFormObject = z.object({
   name: z.string().trim().min(1, "Enter a habit name").max(120),
   // Calendar-day granularity only — a habit's start date has no meaningful
   // time-of-day, so this is deliberately stricter than a general datetime
@@ -110,7 +130,21 @@ export const habitFormSchema = z.object({
    * subhabit — also route-handler-enforced, same reason as above.
    */
   allowDirectLogging: z.boolean(),
+  /**
+   * Point Sprints. Omitted means `null` (earns no points) — so, like every
+   * other field here, an edit always replaces it rather than leaving it be.
+   */
+  pointsKind: pointsKindSchema.nullable().optional(),
+  pointsValue: z
+    .number()
+    .int("Points must be a whole number")
+    .min(1, "Points must be at least 1")
+    .max(10000)
+    .nullable()
+    .optional(),
 });
+
+export const habitFormSchema = habitFormObject.superRefine(refinePoints);
 
 /**
  * Same as `habitFormSchema`, except `views` may be omitted/empty (the create
@@ -120,11 +154,13 @@ export const habitFormSchema = z.object({
  * The edit form (`habitFormSchema`) always requires all of these explicitly,
  * since an existing habit always has real values for them.
  */
-export const createHabitSchema = habitFormSchema.extend({
-  views: z.array(habitViewInputSchema).optional(),
-  parentId: z.string().nullable().optional(),
-  allowDirectLogging: z.boolean().optional(),
-});
+export const createHabitSchema = habitFormObject
+  .extend({
+    views: z.array(habitViewInputSchema).optional(),
+    parentId: z.string().nullable().optional(),
+    allowDirectLogging: z.boolean().optional(),
+  })
+  .superRefine(refinePoints);
 
 /**
  * Drag-to-reorder: the full new relative order for one sibling group
@@ -166,6 +202,36 @@ export const updateLogSchema = z.object({
   notes: z.string().trim().max(2000).nullable(),
 });
 
+/** Datetime field shared by the sprint form — same strict ISO parse as logs. */
+const sprintDateTime = (label: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, `Enter a ${label} date and time`)
+    .refine((s) => DateTime.fromISO(s).isValid, { message: "Enter a valid date and time" });
+
+/** Create and edit (full replace) for a Point Sprint. */
+export const sprintFormSchema = z
+  .object({
+    name: z.string().trim().max(120).nullable().optional(),
+    startAt: sprintDateTime("start"),
+    endAt: sprintDateTime("end"),
+    target: z
+      .number()
+      .int("Target must be a whole number")
+      .min(1, "Target must be at least 1")
+      .max(1_000_000),
+  })
+  .superRefine((sprint, ctx) => {
+    const start = DateTime.fromISO(sprint.startAt);
+    const end = DateTime.fromISO(sprint.endAt);
+    if (start.isValid && end.isValid && end <= start) {
+      ctx.addIssue({ code: "custom", message: "End must be after start", path: ["endAt"] });
+    }
+  });
+
+export type PointsKindInput = z.infer<typeof pointsKindSchema>;
+export type SprintFormInput = z.infer<typeof sprintFormSchema>;
 export type ViewKindInput = z.infer<typeof viewKindSchema>;
 export type HabitViewInput = z.infer<typeof habitViewInputSchema>;
 export type HabitFormInput = z.infer<typeof habitFormSchema>;

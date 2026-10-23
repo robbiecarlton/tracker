@@ -9,6 +9,22 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-10-22 — Point Sprints
+
+**`@tracker/core` 0.11.0**: habit point values (`per_log` / `clean_day`),
+the `PointSprint` type, and `points.ts` — live sprint totals, the
+conservative points-per-day-needed calculation, double-counting detection,
+the points filter, and random daily suggestions.
+
+**`@tracker/backend` 0.7.0**: habit points columns + `point_sprint` table
+(migration `0007`), and `/api/sprints` CRUD.
+
+**`@tracker/mobile` 0.12.0**: plan/edit/delete sprints, sprint cards on the
+home page, a per-sprint screen with rerollable daily suggestions, past
+sprints, a Points section on the habit form (with a warning when changing
+points during an active sprint), points/double-counting labels on habit
+cards, and an All / Earns points / No points filter.
+
 ## 2026-09-15 — Heatmap cell inspection (date/count/logs on hover or long-press)
 
 **`@tracker/core` 0.10.0**: `HeatmapBucket.logs` — the individual logs behind

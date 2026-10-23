@@ -80,6 +80,8 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
         // gate this on — always starts loggable directly.
         allowDirectLogging: true,
         sortOrder,
+        pointsKind: parsed.data.pointsKind ?? null,
+        pointsValue: parsed.data.pointsValue ?? null,
         createdAt: now,
         updatedAt: now,
       });
@@ -193,6 +195,8 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
           parentId: parsed.data.parentId,
           allowDirectLogging: parsed.data.allowDirectLogging,
           sortOrder,
+          pointsKind: parsed.data.pointsKind ?? null,
+          pointsValue: parsed.data.pointsValue ?? null,
           updatedAt: now,
         })
         .where(eq(habit.id, id));
@@ -473,6 +477,8 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
         parentId: newParentId,
         allowDirectLogging: parsed.data.allowDirectLogging,
         sortOrder,
+        pointsKind: parsed.data.pointsKind ?? null,
+        pointsValue: parsed.data.pointsValue ?? null,
         createdAt: now,
         updatedAt: now,
       });
@@ -655,6 +661,8 @@ function toHabit(
     parentId: row.parentId,
     allowDirectLogging: row.allowDirectLogging,
     sortOrder: row.sortOrder,
+    pointsKind: (row.pointsKind as Habit["pointsKind"]) ?? null,
+    pointsValue: row.pointsValue,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     logs: (logsByHabit.get(row.id) ?? []).map(toHabitLog),

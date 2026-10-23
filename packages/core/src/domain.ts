@@ -24,6 +24,14 @@ export type HeatmapPolarity = "positive" | "neutral" | "negative";
 /** A heatmap view with no explicit `heatmapPolarity` renders as this. */
 export const DEFAULT_HEATMAP_POLARITY: HeatmapPolarity = "neutral";
 
+/**
+ * How a habit earns Point Sprint points (`points.ts`, docs/DOMAIN.md's
+ * "Points & sprints"): `per_log` = N points every time it's logged;
+ * `clean_day` = N points for every midnight crossed with no log in the
+ * previous 24 hours. A habit has at most one kind.
+ */
+export type PointsKind = "per_log" | "clean_day";
+
 export interface HabitView {
   id: string;
   habitId: string;
@@ -80,6 +88,10 @@ export interface Habit {
    * dashboard (`PATCH /api/habits/reorder`), never by the create/edit form.
    */
   sortOrder: number;
+  /** Point Sprints: `null` = earns no points. Set together with `pointsValue`. */
+  pointsKind: PointsKind | null;
+  /** Whole number ≥ 1 when `pointsKind` is set, else `null`. */
+  pointsValue: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -107,6 +119,22 @@ export interface HabitStartDateChange {
   previousStartDate: string;
   /** The start date it changed to. */
   newStartDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * A window during which points are tallied toward `target` — see
+ * `points.ts`. Several may overlap. `name` is optional; the app falls back
+ * to a label built from the dates.
+ */
+export interface PointSprint {
+  id: string;
+  userId: string;
+  name: string | null;
+  startAt: string;
+  endAt: string;
+  target: number;
   createdAt: string;
   updatedAt: string;
 }

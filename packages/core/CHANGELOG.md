@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-22
+
+### Added
+
+- Point Sprints (`points.ts`): `Habit.pointsKind` (`per_log` | `clean_day`)
+  and `Habit.pointsValue`; the `PointSprint` type; `sprintPoints`,
+  `sprintStatus`, `remainingSprintDays`, `dailyAverageNeeded`,
+  `remainingSprintDates`, `doubleCountedHabitIds`, `filterHabitsByPoints`,
+  and `suggestDailyPlan` (seedable random daily suggestions). See
+  `docs/DOMAIN.md`'s "Points & sprints" for the rules.
+- `pointsKind`/`pointsValue` on `habitFormSchema`/`createHabitSchema`
+  (optional; set together or not at all), and `sprintFormSchema`.
+
+### Fixed
+
+- `CORE_VERSION` had been stuck at `0.5.0`; it now tracks the package version.
+
 ## [0.10.0] - 2026-09-15
 
 ### Added
