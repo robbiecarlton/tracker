@@ -3,7 +3,7 @@ import type { HabitLog, PointSprint } from "./domain";
 import {
   dailyAverageNeeded,
   doubleCountedHabitIds,
-  filterHabitsByPoints,
+  matchesPointsFilter,
   remainingSprintDates,
   remainingSprintDays,
   sprintPoints,
@@ -251,23 +251,20 @@ describe("doubleCountedHabitIds", () => {
   });
 });
 
-describe("filterHabitsByPoints", () => {
-  const habits = [
-    habit("a"),
-    habit("b", { parentId: "a", pointsKind: "per_log", pointsValue: 1 }),
-    habit("c"),
-  ];
+describe("matchesPointsFilter", () => {
+  const withPoints = habit("a", { pointsKind: "per_log", pointsValue: 1 });
+  const without = habit("b");
 
-  it("keeps matches plus their ancestors as context", () => {
-    expect(filterHabitsByPoints(habits, "points").map((h) => h.id)).toEqual(["a", "b"]);
+  it("matches on the habit's own points only", () => {
+    expect(matchesPointsFilter(withPoints, "points")).toBe(true);
+    expect(matchesPointsFilter(without, "points")).toBe(false);
+    expect(matchesPointsFilter(without, "no_points")).toBe(true);
+    expect(matchesPointsFilter(withPoints, "no_points")).toBe(false);
   });
 
-  it("no_points keeps habits without points", () => {
-    expect(filterHabitsByPoints(habits, "no_points").map((h) => h.id)).toEqual(["a", "c"]);
-  });
-
-  it("all keeps everything", () => {
-    expect(filterHabitsByPoints(habits, "all")).toHaveLength(3);
+  it("all matches everything", () => {
+    expect(matchesPointsFilter(withPoints, "all")).toBe(true);
+    expect(matchesPointsFilter(without, "all")).toBe(true);
   });
 });
 

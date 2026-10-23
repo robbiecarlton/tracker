@@ -5,6 +5,7 @@ import {
   buildDashboardRows,
   childrenOf,
   getAncestors,
+  flattenHabits,
   getDescendants,
   searchHabits,
   wouldCreateCycle,
@@ -188,6 +189,25 @@ describe("buildDashboardRows", () => {
       new Set(),
     );
     expect(rows.map((r) => r.habit.id)).toEqual(["exercise"]);
+  });
+});
+
+describe("flattenHabits", () => {
+  it("groups included habits by depth, skipping archived subtrees", () => {
+    const habits = [
+      habit("root"),
+      habit("child", { parentId: "root" }),
+      habit("grandchild", { parentId: "child" }),
+      habit("other"),
+      habit("gone", { archivedAt: "2026-01-02T00:00:00Z" }),
+      habit("under-gone", { parentId: "gone" }),
+    ];
+    const groups = flattenHabits(habits, (h) => h.id !== "child");
+    expect(groups.map((g) => g.map((m) => m.habit.id))).toEqual([
+      ["root", "other"],
+      ["grandchild"],
+    ]);
+    expect(groups[1]![0]!.ancestors.map((a) => a.id)).toEqual(["root", "child"]);
   });
 });
 

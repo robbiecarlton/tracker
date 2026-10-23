@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-22
+
+### Changed
+
+- The "Earns points" / "No points" filter now flattens the home page the
+  same way search does — only habits whose own points match, as a flat
+  list grouped by nesting depth with ancestor breadcrumbs — instead of
+  keeping non-matching parents as nested context. Combines with a search
+  query when both are set.
+
 ## [0.12.0] - 2026-10-22
 
 ### Added

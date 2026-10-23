@@ -161,6 +161,36 @@ export interface HabitSearchMatch<T extends HabitNode> {
 }
 
 /**
+ * Every non-archived habit for which `include(habit, ancestors)` holds,
+ * flattened for a non-nested list: **grouped by depth, ascending**
+ * (top-level first, then depth-1, etc.), each group in normal tree order
+ * (walks `childrenOf` in existing `sortOrder`). An archived habit's whole
+ * subtree is skipped, per the same rule `aggregatedLogs`/
+ * `buildDashboardRows` use. Shared by search and the dashboard's points
+ * filter, which both render flat.
+ */
+export function flattenHabits<T extends HabitNode>(
+  habits: readonly T[],
+  include: (habit: T, ancestors: readonly T[]) => boolean,
+): HabitSearchMatch<T>[][] {
+  const buckets = new Map<number, HabitSearchMatch<T>[]>();
+  function walk(parentId: string | null, ancestors: T[], depth: number) {
+    for (const habit of childrenOf(parentId, habits)) {
+      if (habit.archivedAt) continue;
+      if (include(habit, ancestors)) {
+        const bucket = buckets.get(depth) ?? [];
+        bucket.push({ habit, depth, ancestors });
+        buckets.set(depth, bucket);
+      }
+      walk(habit.id, [...ancestors, habit], depth + 1);
+    }
+  }
+  walk(null, [], 0);
+
+  return [...buckets.keys()].sort((a, b) => a - b).map((depth) => buckets.get(depth)!);
+}
+
+/**
  * Fuzzy-subsequence search (`fuzzySubsequenceMatch`) over a habit's full
  * path — every ancestor's name plus its own, in order — so a query like
  * `"ru"` matches "Run" whether or not any of its ancestors also match, and
@@ -183,21 +213,7 @@ export function searchHabits<T extends HabitNode & { name: string }>(
 ): HabitSearchMatch<T>[][] {
   const q = query.trim();
   if (!q) return [];
-
-  const buckets = new Map<number, HabitSearchMatch<T>[]>();
-  function walk(parentId: string | null, ancestors: T[], depth: number) {
-    for (const habit of childrenOf(parentId, habits)) {
-      if (habit.archivedAt) continue;
-      const path = [...ancestors, habit].map((h) => h.name).join(" ");
-      if (fuzzySubsequenceMatch(q, path)) {
-        const bucket = buckets.get(depth) ?? [];
-        bucket.push({ habit, depth, ancestors });
-        buckets.set(depth, bucket);
-      }
-      walk(habit.id, [...ancestors, habit], depth + 1);
-    }
-  }
-  walk(null, [], 0);
-
-  return [...buckets.keys()].sort((a, b) => a - b).map((depth) => buckets.get(depth)!);
+  return flattenHabits(habits, (habit, ancestors) =>
+    fuzzySubsequenceMatch(q, [...ancestors, habit].map((h) => h.name).join(" ")),
+  );
 }

@@ -203,23 +203,13 @@ export function doubleCountedHabitIds<T extends PointsHabit>(habits: readonly T[
 export type PointsFilter = "all" | "points" | "no_points";
 
 /**
- * The dashboard's points filter: keeps each habit that matches, plus every
- * ancestor of one (as context, so the tree still nests correctly). Input
- * order is preserved.
+ * The dashboard's points filter: does `habit` belong in the flat filtered
+ * list? Only the habit's *own* points count — an ancestor or descendant
+ * earning points doesn't pull it in.
  */
-export function filterHabitsByPoints<T extends PointsHabit>(
-  habits: readonly T[],
-  filter: PointsFilter,
-): T[] {
-  if (filter === "all") return [...habits];
-  const matches = (h: T) => hasPoints(h) === (filter === "points");
-  const keep = new Set<string>();
-  for (const habit of habits) {
-    if (!matches(habit)) continue;
-    keep.add(habit.id);
-    for (const ancestor of getAncestors(habit.id, habits)) keep.add(ancestor.id);
-  }
-  return habits.filter((h) => keep.has(h.id));
+export function matchesPointsFilter(habit: PointsHabit, filter: PointsFilter): boolean {
+  if (filter === "all") return true;
+  return hasPoints(habit) === (filter === "points");
 }
 
 /** One line of a suggested day: log `habitId` `count` times, or skip it. */

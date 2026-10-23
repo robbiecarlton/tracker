@@ -9,6 +9,16 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-10-22 — Points filter flattens like search
+
+**`@tracker/core` 0.12.0**: `flattenHabits` (search's flat, depth-grouped
+list for any predicate) and `matchesPointsFilter`, replacing
+`filterHabitsByPoints`.
+
+**`@tracker/mobile` 0.13.0**: the Earns points / No points filter shows a
+flat list of only the matching habits, exactly like search results, and
+combines with a search query.
+
 ## 2026-10-22 — Point Sprints
 
 **`@tracker/core` 0.11.0**: habit point values (`per_log` / `clean_day`),

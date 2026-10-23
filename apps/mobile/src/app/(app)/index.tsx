@@ -1,7 +1,9 @@
 import {
   childrenOf,
-  filterHabitsByPoints,
+  flattenHabits,
+  fuzzySubsequenceMatch,
   getDescendants,
+  matchesPointsFilter,
   sprintStatus,
   type PointsFilter,
 } from "@tracker/core";
@@ -49,11 +51,9 @@ export default function Dashboard() {
   const { user } = useCurrentUser();
   const { habits: allHabits, loading, error, refetch, setHabits } = useHabits();
   const { sprints, refetch: refetchSprints } = useSprints();
-  // Points filter — local and unsaved, like search. Only narrows which
-  // habits render; every calculation still runs over `allHabits`.
+  // Points filter — local and unsaved, like search. Either one switches
+  // the dashboard to the flat list below; calculations still use `allHabits`.
   const [pointsFilter, setPointsFilter] = useState<PointsFilter>("all");
-  const treeHabits = filterHabitsByPoints(allHabits, pointsFilter);
-  const dragEnabled = pointsFilter === "all";
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   // Separate from `collapsed` above (which hides a habit's *subhabits*):
   // this hides a habit's own tiles/heatmap/actions/Edit-links while
@@ -168,11 +168,11 @@ export default function Dashboard() {
      * own subhabits below. */
     depth?: number;
   }) {
-    const childHabits = childrenOf(habit.id, treeHabits).filter((h) => !h.archivedAt);
+    const childHabits = childrenOf(habit.id, allHabits).filter((h) => !h.archivedAt);
     // All descendants (grandchildren etc.), not just direct children — the
     // label reflects everything that appears when expanded, not just the
     // immediate next level.
-    const descendantCount = getDescendants(habit.id, treeHabits).filter(
+    const descendantCount = getDescendants(habit.id, allHabits).filter(
       (d) => !d.habit.archivedAt,
     ).length;
     const childrenHidden = collapsed.has(habit.id);
@@ -191,10 +191,8 @@ export default function Dashboard() {
           allHabits={allHabits}
           timeZone={user?.timeZone ?? "UTC"}
           onChanged={refetch}
-          // A filtered group is only part of its real sibling group, and
-          // reorder needs the whole group — so no dragging while filtered.
-          onDragHandleLongPress={dragEnabled ? onDragHandleLongPress : undefined}
-          dragHandleRef={dragEnabled ? dragHandleRef : undefined}
+          onDragHandleLongPress={onDragHandleLongPress}
+          dragHandleRef={dragHandleRef}
           contentCollapsed={contentCollapsed.has(habit.id)}
           onToggleContentCollapsed={() => toggleContentCollapsed(habit.id)}
         />
@@ -337,7 +335,24 @@ export default function Dashboard() {
     );
   }
 
-  const topLevelHabits = childrenOf(null, treeHabits).filter((h) => !h.archivedAt);
+  const topLevelHabits = childrenOf(null, allHabits).filter((h) => !h.archivedAt);
+  // Search and the points filter both render the same flat list, and
+  // combine when both are set.
+  const trimmedQuery = query.trim();
+  const flatView = trimmedQuery !== "" || pointsFilter !== "all";
+  const flatGroups = flatView
+    ? flattenHabits(
+        allHabits,
+        (habit, ancestors) =>
+          matchesPointsFilter(habit, pointsFilter) &&
+          fuzzySubsequenceMatch(trimmedQuery, [...ancestors, habit].map((h) => h.name).join(" ")),
+      )
+    : [];
+  const flatEmptyMessage = trimmedQuery
+    ? `No habits match \u201c${trimmedQuery}\u201d.`
+    : pointsFilter === "points"
+      ? "No habits earn points yet."
+      : "Every habit earns points.";
   const sprintNow = { now: new Date().toISOString(), timeZone: user?.timeZone ?? "UTC" };
   const currentSprints = sprints.filter((s) => sprintStatus(s, sprintNow) !== "ended");
 
@@ -429,24 +444,16 @@ export default function Dashboard() {
         <ActivityIndicator style={styles.spinner} />
       ) : error ? (
         <Text style={styles.error}>{error}</Text>
-      ) : query.trim() ? (
+      ) : flatView ? (
         <SearchResults
-          query={query}
+          groups={flatGroups}
+          emptyMessage={flatEmptyMessage}
           allHabits={allHabits}
           timeZone={user?.timeZone ?? "UTC"}
           onChanged={refetch}
-          include={(h) =>
-            pointsFilter === "all" || (h.pointsKind != null) === (pointsFilter === "points")
-          }
         />
       ) : topLevelHabits.length === 0 ? (
-        <Text style={styles.empty}>
-          {pointsFilter === "all"
-            ? "No habits yet — tap \u201c+ New\u201d to add one."
-            : pointsFilter === "points"
-              ? "No habits earn points yet."
-              : "Every habit earns points."}
-        </Text>
+        <Text style={styles.empty}>No habits yet — tap &ldquo;+ New&rdquo; to add one.</Text>
       ) : Platform.OS === "web" ? (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {siblingGroup({ habits: topLevelHabits, parentId: null })}

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-22
+
+### Added
+
+- `flattenHabits(habits, include)` in `habit-tree.ts` — the depth-grouped
+  flat list `searchHabits` produced, for any predicate. `searchHabits` is
+  now built on it (same results).
+- `matchesPointsFilter(habit, filter)` — whether a habit's *own* points
+  match the dashboard's points filter.
+
+### Removed
+
+- `filterHabitsByPoints` — it kept ancestors as context for a nested view;
+  the points filter now renders flat instead (`matchesPointsFilter`).
+
 ## [0.11.0] - 2026-10-22
 
 ### Added

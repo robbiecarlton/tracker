@@ -1,4 +1,4 @@
-import { getDescendants, searchHabits } from "@tracker/core";
+import { getDescendants, type HabitSearchMatch } from "@tracker/core";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import type { ApiHabit } from "@/api/types";
 import { nodeBackgroundForDepth, nodeBoxStyles } from "@/lib/node-box";
@@ -6,12 +6,12 @@ import { theme } from "@/lib/theme";
 import { HabitCard } from "./HabitCard";
 
 /**
- * The dashboard's search results — a **flat** list (no nesting) of every
- * habit whose full path (its own name plus every ancestor's, in order)
- * fuzzy-matches `query` (`searchHabits`, `@tracker/core`), grouped by
- * nesting depth ascending: top-level matches first, then depth-1, etc. —
- * so a match that's less nested always shows above its own matching
- * children, per the dashboard's own visual hierarchy.
+ * The dashboard's flat (no nesting) habit list, used for search results
+ * and the points filter. `groups` comes from `@tracker/core`'s
+ * `flattenHabits`/`searchHabits`: grouped by nesting depth ascending —
+ * top-level matches first, then depth-1, etc. — so a match that's less
+ * nested always shows above its own matching children, per the
+ * dashboard's own visual hierarchy.
  *
  * Each result reuses the normal expanded `HabitCard` as-is (Edit, +
  * Subhabit, tiles, heatmap, Log, +note, Logs) — just without a drag handle
@@ -22,27 +22,23 @@ import { HabitCard } from "./HabitCard";
  * expand in a flat list).
  */
 export function SearchResults({
-  query,
+  groups,
+  emptyMessage,
   allHabits,
   timeZone,
   onChanged,
-  include = () => true,
 }: {
-  query: string;
+  groups: HabitSearchMatch<ApiHabit>[][];
+  /** Shown when `groups` is empty. */
+  emptyMessage: string;
   allHabits: ApiHabit[];
-  /** Narrows which matches show — the dashboard's points filter. */
-  include?: (habit: ApiHabit) => boolean;
   timeZone: string;
   onChanged: () => void | Promise<void>;
 }) {
-  const groups = searchHabits(query, allHabits)
-    .map((group) => group.filter((match) => include(match.habit)))
-    .filter((group) => group.length > 0);
-
   if (groups.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.empty}>No habits match &ldquo;{query.trim()}&rdquo;.</Text>
+        <Text style={styles.empty}>{emptyMessage}</Text>
       </View>
     );
   }

@@ -233,9 +233,11 @@ total? (N sprints affected)").
 - The home page shows a card per upcoming/active sprint (total vs
   target, per-day needed, dates, Edit); ended sprints move to **Past
   sprints** (final total, hit/missed). The home page can also be
-  filtered to habits that earn points, or those that don't — matching
-  habits stay nested under their (unfiltered) ancestors, and dragging is
-  off while filtered.
+  filtered to habits that earn points, or those that don't (by each
+  habit's _own_ points only). Filtering flattens the dashboard exactly
+  like search does — a flat list grouped by nesting depth, each with its
+  ancestor breadcrumb — and combines with a search query when both are
+  set.
 
 ## Offline (Phase 5)
 
