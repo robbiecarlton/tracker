@@ -63,7 +63,9 @@ async function patchHabit(
       views: habit.views.map((v) => (v.unit ? { kind: v.kind, unit: v.unit } : { kind: v.kind })),
       parentId: patch.parentId !== undefined ? patch.parentId : habit.parentId,
       allowDirectLogging:
-        patch.allowDirectLogging !== undefined ? patch.allowDirectLogging : habit.allowDirectLogging,
+        patch.allowDirectLogging !== undefined
+          ? patch.allowDirectLogging
+          : habit.allowDirectLogging,
     }),
   });
 }
@@ -308,7 +310,11 @@ describe("nested habits — delete with children", () => {
     const cookie = await signUpAndGetCookie(app, "nest-del-all-archived");
     const parent = await createHabit(cookie, { name: "Bad habits" });
     const child = await createHabit(cookie, { name: "Smoking", parentId: parent.id });
-    await app.inject({ method: "POST", url: `/api/habits/${child.id}/archive`, headers: { cookie } });
+    await app.inject({
+      method: "POST",
+      url: `/api/habits/${child.id}/archive`,
+      headers: { cookie },
+    });
 
     const res = await app.inject({
       method: "DELETE",
@@ -417,7 +423,11 @@ describe("nested habits — archive-and-clone guard", () => {
     const cookie = await signUpAndGetCookie(app, "nest-clone-allowed");
     const habit = await createHabit(cookie, { startDate: "2026-01-01" });
     const child = await createHabit(cookie, { name: "Smoking", parentId: habit.id });
-    await app.inject({ method: "POST", url: `/api/habits/${child.id}/archive`, headers: { cookie } });
+    await app.inject({
+      method: "POST",
+      url: `/api/habits/${child.id}/archive`,
+      headers: { cookie },
+    });
 
     const res = await app.inject({
       method: "POST",

@@ -390,7 +390,10 @@ export async function habitsRoutes(app: FastifyInstance): Promise<void> {
     await db.transaction(async (tx) => {
       if (action === "cascade") {
         const ids = [id, ...activeDescendants.map((d) => d.habit.id)];
-        await tx.update(habit).set({ archivedAt: now, updatedAt: now }).where(inArray(habit.id, ids));
+        await tx
+          .update(habit)
+          .set({ archivedAt: now, updatedAt: now })
+          .where(inArray(habit.id, ids));
         return;
       }
 

@@ -1,4 +1,9 @@
-import { aggregatedLogs, childrenOf, type HabitLog, type HabitStartDateChange } from "@tracker/core";
+import {
+  aggregatedLogs,
+  childrenOf,
+  type HabitLog,
+  type HabitStartDateChange,
+} from "@tracker/core";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";

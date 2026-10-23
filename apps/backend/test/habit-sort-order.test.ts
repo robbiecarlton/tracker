@@ -168,7 +168,10 @@ describe("habit sort order", () => {
     const cookie = await signUpAndGetCookie(app, "sort-reparent");
     const oldParent = await createHabit(cookie, { name: "Old parent" });
     const newParent = await createHabit(cookie, { name: "New parent" });
-    const existingChild = await createHabit(cookie, { name: "Existing child", parentId: newParent.id });
+    const existingChild = await createHabit(cookie, {
+      name: "Existing child",
+      parentId: newParent.id,
+    });
     const moved = await createHabit(cookie, { name: "Moved", parentId: oldParent.id });
 
     const patch = await app.inject({

@@ -18,17 +18,17 @@ the Heatmap view (all below) landed after Phase 4 — see
 
 ### Habit
 
-| Field           | Notes                                                                                          |
-| --------------- | ---------------------------------------------------------------------------------------------- |
-| `name`          |                                                                                                |
-| `startDate`     | Current start date. Prior start dates are retained on the timeline.                            |
-| `views`         | One or more (see below). Switchable any time; multiple active.                                 |
-| per-view config | streak unit; cumulation goal; percentage unit/target/target-type; days unit/target/target-type |
-| `archivedAt`    | Archived habits leave the dashboard but keep their config.                                     |
-| `parentId`      | Nested habits (below). `null` = top-level.                                                     |
-| `allowDirectLogging` | Nested habits (below). Defaults `true`.                                                   |
-| `sortOrder`     | Custom sort order (below). Relative to other habits sharing `parentId` only.                   |
-| logs            | Zero or more.                                                                                  |
+| Field                | Notes                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------- |
+| `name`               |                                                                                                |
+| `startDate`          | Current start date. Prior start dates are retained on the timeline.                            |
+| `views`              | One or more (see below). Switchable any time; multiple active.                                 |
+| per-view config      | streak unit; cumulation goal; percentage unit/target/target-type; days unit/target/target-type |
+| `archivedAt`         | Archived habits leave the dashboard but keep their config.                                     |
+| `parentId`           | Nested habits (below). `null` = top-level.                                                     |
+| `allowDirectLogging` | Nested habits (below). Defaults `true`.                                                        |
+| `sortOrder`          | Custom sort order (below). Relative to other habits sharing `parentId` only.                   |
+| logs                 | Zero or more.                                                                                  |
 
 ### Log
 
@@ -96,7 +96,7 @@ reparenting to a habit's own descendant is rejected (would create a cycle).
 - **Logging rolls up transitively.** Logging a subhabit counts as a log for
   every ancestor's view calculations too — an ancestor's views run over its
   own logs plus every non-archived descendant's (`@tracker/core`'s
-  `aggregatedLogs`). Archiving a habit stops *its* logs (and its own
+  `aggregatedLogs`). Archiving a habit stops _its_ logs (and its own
   descendants', recursively) from counting toward anything above it — the
   same "archived leaves the active view" rule as a top-level habit, applied
   to the whole subtree at once.
@@ -119,11 +119,11 @@ reparenting to a habit's own descendant is rejected (would create a cycle).
 - **Dashboard**: nothing is hidden by default — a parent habit renders
   normally, followed by an expand/collapse control (default expanded,
   counting every descendant, not just direct children) and its visible
-  subhabits nested *inside its own bordered box* (not just indented
+  subhabits nested _inside its own bordered box_ (not just indented
   alongside it — the border visually contains them, arbitrarily deep),
   with an "Add subhabit" link to create one already parented here. A
-  second, independent toggle next to a habit's name collapses *that
-  habit's own* tiles/heatmap/actions (keeping just its drag handle, name,
+  second, independent toggle next to a habit's name collapses _that
+  habit's own_ tiles/heatmap/actions (keeping just its drag handle, name,
   and the toggle) while its subhabits keep showing nested underneath —
   "just show me the children." Both collapse states are local-only (not
   synced across devices). Drag-to-reorder (below) is always scoped to one
@@ -168,7 +168,7 @@ unit-bucket, color intensity scaled by that bucket's log count. Box size
 - **Window**: a fixed number of buckets ending at "now", giving every unit
   roughly the same visual footprint — day → 182 (26 weeks), week → 52,
   month → 24.
-- **Day-unit alignment**: aligned to 26 *complete* ISO-Monday weeks (not
+- **Day-unit alignment**: aligned to 26 _complete_ ISO-Monday weeks (not
   simply "182 days back"), so it renders as a real calendar grid — 26
   columns (weeks) × 7 rows (Monday–Sunday), matching this app's existing
   Monday week-start convention. Week/month units have no day-of-week

@@ -56,11 +56,14 @@ export function SearchResults({
               style={[nodeBoxStyles.nodeBox, { backgroundColor: nodeBackgroundForDepth(depth) }]}
             >
               {ancestors.length > 0 ? (
-                <Text style={styles.breadcrumb}>
-                  {ancestors.map((a) => a.name).join(" › ")} ›
-                </Text>
+                <Text style={styles.breadcrumb}>{ancestors.map((a) => a.name).join(" › ")} ›</Text>
               ) : null}
-              <HabitCard habit={habit} allHabits={allHabits} timeZone={timeZone} onChanged={onChanged} />
+              <HabitCard
+                habit={habit}
+                allHabits={allHabits}
+                timeZone={timeZone}
+                onChanged={onChanged}
+              />
               {descendantCount > 0 ? (
                 <Text style={styles.subhabitCount}>
                   {descendantCount} {descendantCount === 1 ? "subhabit" : "subhabits"}

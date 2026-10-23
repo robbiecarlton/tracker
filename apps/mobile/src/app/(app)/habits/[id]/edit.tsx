@@ -59,13 +59,13 @@ function confirmChildrenAction(
       onPress: () => opts.onApply("grandparent"),
     });
   }
-  buttons.push({ text: opts.cascadeLabel, style: opts.cascadeStyle, onPress: () => opts.onApply("cascade") });
+  buttons.push({
+    text: opts.cascadeLabel,
+    style: opts.cascadeStyle,
+    onPress: () => opts.onApply("cascade"),
+  });
 
-  confirmAlert(
-    `"${target.name}" has subhabits`,
-    `${list}\n\nWhat should happen to them?`,
-    buttons,
-  );
+  confirmAlert(`"${target.name}" has subhabits`, `${list}\n\nWhat should happen to them?`, buttons);
 }
 
 /** True if an `ApiError`'s body contains this backend error code, whatever its exact shape. */
