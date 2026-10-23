@@ -1,4 +1,4 @@
-export const CORE_VERSION = "0.5.0";
+export const CORE_VERSION = "0.11.0";
 
 export { z } from "zod";
 export type { ZodError, ZodType } from "zod";
@@ -13,3 +13,4 @@ export * from "./time";
 export * from "./views";
 export * from "./targets";
 export * from "./highlight";
+export * from "./points";

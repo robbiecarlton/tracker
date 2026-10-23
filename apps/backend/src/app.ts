@@ -6,6 +6,7 @@ import { toWebHeaders } from "./http";
 import { habitsRoutes } from "./routes/habits";
 import { healthRoutes } from "./routes/health";
 import { meRoutes } from "./routes/me";
+import { sprintsRoutes } from "./routes/sprints";
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({
@@ -53,6 +54,7 @@ export function buildApp(): FastifyInstance {
   app.register(healthRoutes);
   app.register(meRoutes);
   app.register(habitsRoutes);
+  app.register(sprintsRoutes);
 
   return app;
 }

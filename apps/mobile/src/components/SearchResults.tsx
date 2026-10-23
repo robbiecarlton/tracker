@@ -26,13 +26,18 @@ export function SearchResults({
   allHabits,
   timeZone,
   onChanged,
+  include = () => true,
 }: {
   query: string;
   allHabits: ApiHabit[];
+  /** Narrows which matches show — the dashboard's points filter. */
+  include?: (habit: ApiHabit) => boolean;
   timeZone: string;
   onChanged: () => void | Promise<void>;
 }) {
-  const groups = searchHabits(query, allHabits);
+  const groups = searchHabits(query, allHabits)
+    .map((group) => group.filter((match) => include(match.habit)))
+    .filter((group) => group.length > 0);
 
   if (groups.length === 0) {
     return (

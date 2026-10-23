@@ -3,6 +3,7 @@ import {
   createHabitSchema,
   createLogSchema,
   habitFormSchema,
+  sprintFormSchema,
   habitViewInputSchema,
   updateLogSchema,
 } from "./habit-schemas";
@@ -248,5 +249,63 @@ describe("updateLogSchema", () => {
     expect(
       updateLogSchema.safeParse({ timestamp: "2026-01-01T12:00:00Z", notes: "felt great" }).success,
     ).toBe(true);
+  });
+});
+
+describe("habit points fields", () => {
+  const base = { name: "Run", startDate: "2026-01-01" };
+
+  it("accepts a kind with a whole-number value, or neither", () => {
+    expect(
+      createHabitSchema.safeParse({ ...base, pointsKind: "per_log", pointsValue: 3 }).success,
+    ).toBe(true);
+    expect(
+      createHabitSchema.safeParse({ ...base, pointsKind: null, pointsValue: null }).success,
+    ).toBe(true);
+  });
+
+  it("rejects a kind without a value and vice versa", () => {
+    expect(createHabitSchema.safeParse({ ...base, pointsKind: "clean_day" }).success).toBe(false);
+    expect(createHabitSchema.safeParse({ ...base, pointsValue: 2 }).success).toBe(false);
+  });
+
+  it("rejects zero, negative, and fractional values", () => {
+    for (const pointsValue of [0, -1, 1.5]) {
+      expect(
+        createHabitSchema.safeParse({ ...base, pointsKind: "per_log", pointsValue }).success,
+      ).toBe(false);
+    }
+  });
+
+  it("applies the same rule on edit", () => {
+    const edit = { ...base, views: [{ kind: "cumulative" }], parentId: null };
+    expect(
+      habitFormSchema.safeParse({ ...edit, allowDirectLogging: true, pointsKind: "per_log" })
+        .success,
+    ).toBe(false);
+  });
+});
+
+describe("sprintFormSchema", () => {
+  const base = { startAt: "2026-03-01T00:00:00Z", endAt: "2026-03-08T00:00:00Z", target: 50 };
+
+  it("accepts a valid sprint, with or without a name", () => {
+    expect(sprintFormSchema.safeParse(base).success).toBe(true);
+    expect(sprintFormSchema.safeParse({ ...base, name: "March" }).success).toBe(true);
+  });
+
+  it("requires end after start", () => {
+    expect(sprintFormSchema.safeParse({ ...base, endAt: base.startAt }).success).toBe(false);
+  });
+
+  it("requires a whole-number target of at least 1", () => {
+    expect(sprintFormSchema.safeParse({ ...base, target: 0 }).success).toBe(false);
+    expect(sprintFormSchema.safeParse({ ...base, target: 2.5 }).success).toBe(false);
+  });
+
+  it("rejects non-ISO datetimes", () => {
+    expect(sprintFormSchema.safeParse({ ...base, startAt: "2026-03-01 00:00" }).success).toBe(
+      false,
+    );
   });
 });

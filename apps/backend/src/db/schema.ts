@@ -118,6 +118,12 @@ export const habit = pgTable(
      * to the end of the new sibling group) and by `PATCH /api/habits/reorder`.
      */
     sortOrder: integer("sort_order").notNull().default(0),
+    /**
+     * Point Sprints — see `PointsKind` in `@tracker/core`. Both null (earns
+     * no points) or both set; a CHECK constraint in migration 0007 enforces it.
+     */
+    pointsKind: text("points_kind"),
+    pointsValue: integer("points_value"),
     ...timestamps,
   },
   (t) => [index("habit_user_id_idx").on(t.userId), index("habit_parent_id_idx").on(t.parentId)],
@@ -172,6 +178,23 @@ export const habitStartDateChange = pgTable(
   (t) => [index("habit_start_date_change_habit_id_idx").on(t.habitId)],
 );
 
+/** A Point Sprint — see `docs/DOMAIN.md`'s "Points & sprints". */
+export const pointSprint = pgTable(
+  "point_sprint",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name"),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+    target: integer("target").notNull(),
+    ...timestamps,
+  },
+  (t) => [index("point_sprint_user_id_idx").on(t.userId)],
+);
+
 export const schema = {
   user,
   session,
@@ -181,4 +204,5 @@ export const schema = {
   habitView,
   habitLog,
   habitStartDateChange,
+  pointSprint,
 };

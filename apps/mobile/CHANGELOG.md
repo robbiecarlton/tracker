@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-22
+
+### Added
+
+- Point Sprints. "+ Plan sprint" on the home page creates one (optional
+  name, start/end date & time, point target); each upcoming/active sprint
+  gets a card at the top of the home page with its total vs target,
+  points needed per day, dates, and Edit. Tapping a card opens the
+  sprint's screen: its stats plus, for each remaining day, a random set of
+  habits that would hit the daily average, with a Reroll button. "Past
+  sprints" lists ended ones with hit/missed.
+- A Points section on the habit form (None / Per log / Per clean day +
+  value). Habit cards show a points chip, plus an orange "Double counting"
+  label when an ancestor or descendant also earns points. Changing a
+  habit's points while a sprint is active asks for confirmation first.
+- A home-page filter: All / Earns points / No points (also applies to
+  search; drag-to-reorder is off while filtered).
+
 ## [0.11.0] - 2026-09-15
 
 ### Added

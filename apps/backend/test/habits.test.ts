@@ -27,6 +27,8 @@ export interface HabitJson {
   parentId: string | null;
   allowDirectLogging: boolean;
   sortOrder: number;
+  pointsKind: string | null;
+  pointsValue: number | null;
   createdAt: string;
   updatedAt: string;
   views: {
@@ -413,5 +415,60 @@ describe("habits API", () => {
     expect(() => parseInZone(historyEntry.previousStartDate, "America/Denver")).not.toThrow();
     expect(() => parseInZone(historyEntry.newStartDate, "America/Denver")).not.toThrow();
     expect(() => parseInZone(historyEntry.createdAt, "America/Denver")).not.toThrow();
+  });
+});
+
+describe("habit points", () => {
+  async function create(cookie: string, body: Record<string, unknown>) {
+    return app.inject({
+      method: "POST",
+      url: "/api/habits",
+      headers: { cookie, "content-type": "application/json" },
+      payload: JSON.stringify({ name: "Run", startDate: "2026-01-01", ...body }),
+    });
+  }
+
+  it("defaults to no points", async () => {
+    const cookie = await signUpAndGetCookie(app, "points-default");
+    const habit = ((await create(cookie, {})).json() as { habit: HabitJson }).habit;
+    expect(habit.pointsKind).toBeNull();
+    expect(habit.pointsValue).toBeNull();
+  });
+
+  it("round-trips through create and edit, and an edit that omits them clears them", async () => {
+    const cookie = await signUpAndGetCookie(app, "points-roundtrip");
+    const res = await create(cookie, { pointsKind: "per_log", pointsValue: 3 });
+    expect(res.statusCode).toBe(201);
+    const habit = (res.json() as { habit: HabitJson }).habit;
+    expect(habit.pointsKind).toBe("per_log");
+    expect(habit.pointsValue).toBe(3);
+
+    const edit = (body: Record<string, unknown>) =>
+      app.inject({
+        method: "PATCH",
+        url: `/api/habits/${habit.id}`,
+        headers: { cookie, "content-type": "application/json" },
+        payload: JSON.stringify({
+          name: "Run",
+          startDate: "2026-01-01",
+          views: [{ kind: "cumulative" }],
+          parentId: null,
+          allowDirectLogging: true,
+          ...body,
+        }),
+      });
+
+    const changed = await edit({ pointsKind: "clean_day", pointsValue: 5 });
+    expect((changed.json() as { habit: HabitJson }).habit).toMatchObject({
+      pointsKind: "clean_day",
+      pointsValue: 5,
+    });
+    const cleared = await edit({});
+    expect((cleared.json() as { habit: HabitJson }).habit.pointsKind).toBeNull();
+  });
+
+  it("rejects a kind without a value", async () => {
+    const cookie = await signUpAndGetCookie(app, "points-invalid");
+    expect((await create(cookie, { pointsKind: "per_log" })).statusCode).toBe(400);
   });
 });
