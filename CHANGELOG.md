@@ -9,6 +9,12 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-10-22 — Sprint cards no longer clipped
+
+**`@tracker/mobile` 0.13.2**: home-page sprint cards wrap and fill the
+available width instead of sitting in a fixed-width horizontal row that
+got clipped on web.
+
 ## 2026-10-22 — Suggestions show parents; filter keeps tree order
 
 **`@tracker/core` 0.13.0**: `SuggestionItem.alsoEarns` (the point-earning

@@ -393,12 +393,7 @@ export default function Dashboard() {
         </Pressable>
       </View>
       {currentSprints.length > 0 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.sprintsScroll}
-          contentContainerStyle={styles.sprintsRow}
-        >
+        <View style={styles.sprintsGrid}>
           {currentSprints.map((sprint) => (
             <View key={sprint.id} style={styles.sprintCardWrap}>
               <SprintCard
@@ -414,7 +409,7 @@ export default function Dashboard() {
               />
             </View>
           ))}
-        </ScrollView>
+        </View>
       ) : null}
 
       <View style={styles.searchRow}>
@@ -501,10 +496,18 @@ const styles = StyleSheet.create({
   },
   sprintsTitle: { fontSize: 13, fontWeight: "600", color: theme.colors.text.secondary },
   planSprintLink: { color: theme.colors.brand, fontWeight: "600", fontSize: 14 },
-  // Horizontal so any number of overlapping sprints stays one row tall.
-  sprintsScroll: { flexGrow: 0, marginBottom: 12 },
-  sprintsRow: { paddingHorizontal: 20, gap: 10 },
-  sprintCardWrap: { width: 260 },
+  // Cards wrap and stretch to fill the row: one full-width card on a
+  // phone, several side by side on a wider screen. `flexShrink: 0` keeps
+  // the habit list below from squeezing (and clipping) this section.
+  sprintsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+    flexShrink: 0,
+  },
+  sprintCardWrap: { flexGrow: 1, flexBasis: 300 },
   filterRow: { paddingHorizontal: 20, marginBottom: 12 },
   searchRow: {
     flexDirection: "row",

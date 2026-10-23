@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.2] - 2026-10-22
+
+### Fixed
+
+- Sprint cards on the home page were clipped (on web, the horizontal
+  scroll row shrank to make room for the habit list) and squeezed into a
+  fixed 260px width. They now wrap and stretch to fill the available
+  width — full-width on a phone, side by side when there's room — and
+  never shrink.
+
 ## [0.13.1] - 2026-10-22
 
 ### Fixed
