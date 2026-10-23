@@ -162,31 +162,43 @@ export interface HabitSearchMatch<T extends HabitNode> {
 
 /**
  * Every non-archived habit for which `include(habit, ancestors)` holds,
- * flattened for a non-nested list: **grouped by depth, ascending**
- * (top-level first, then depth-1, etc.), each group in normal tree order
- * (walks `childrenOf` in existing `sortOrder`). An archived habit's whole
- * subtree is skipped, per the same rule `aggregatedLogs`/
- * `buildDashboardRows` use. Shared by search and the dashboard's points
- * filter, which both render flat.
+ * flattened for a non-nested list in **depth-first tree order** — each
+ * habit directly followed by its own (included) descendants, siblings in
+ * `sortOrder`, exactly the order the nested dashboard reads top to bottom.
+ * An archived habit's whole subtree is skipped, per the same rule
+ * `aggregatedLogs`/`buildDashboardRows` use. The dashboard's points filter
+ * renders this as-is; search regroups it by depth (`groupByDepth`).
  */
 export function flattenHabits<T extends HabitNode>(
   habits: readonly T[],
   include: (habit: T, ancestors: readonly T[]) => boolean,
-): HabitSearchMatch<T>[][] {
-  const buckets = new Map<number, HabitSearchMatch<T>[]>();
+): HabitSearchMatch<T>[] {
+  const result: HabitSearchMatch<T>[] = [];
   function walk(parentId: string | null, ancestors: T[], depth: number) {
     for (const habit of childrenOf(parentId, habits)) {
       if (habit.archivedAt) continue;
-      if (include(habit, ancestors)) {
-        const bucket = buckets.get(depth) ?? [];
-        bucket.push({ habit, depth, ancestors });
-        buckets.set(depth, bucket);
-      }
+      if (include(habit, ancestors)) result.push({ habit, depth, ancestors });
       walk(habit.id, [...ancestors, habit], depth + 1);
     }
   }
   walk(null, [], 0);
+  return result;
+}
 
+/**
+ * Regroups a flat match list by depth, ascending (top-level first, then
+ * depth-1, etc.), keeping each group in its input order — search's layout,
+ * where less-nested matches always show above their matching children.
+ */
+export function groupByDepth<T extends HabitNode>(
+  matches: readonly HabitSearchMatch<T>[],
+): HabitSearchMatch<T>[][] {
+  const buckets = new Map<number, HabitSearchMatch<T>[]>();
+  for (const match of matches) {
+    const bucket = buckets.get(match.depth) ?? [];
+    bucket.push(match);
+    buckets.set(match.depth, bucket);
+  }
   return [...buckets.keys()].sort((a, b) => a - b).map((depth) => buckets.get(depth)!);
 }
 
@@ -213,7 +225,9 @@ export function searchHabits<T extends HabitNode & { name: string }>(
 ): HabitSearchMatch<T>[][] {
   const q = query.trim();
   if (!q) return [];
-  return flattenHabits(habits, (habit, ancestors) =>
-    fuzzySubsequenceMatch(q, [...ancestors, habit].map((h) => h.name).join(" ")),
+  return groupByDepth(
+    flattenHabits(habits, (habit, ancestors) =>
+      fuzzySubsequenceMatch(q, [...ancestors, habit].map((h) => h.name).join(" ")),
+    ),
   );
 }

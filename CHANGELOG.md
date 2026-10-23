@@ -9,6 +9,16 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 2026-10-22 — Suggestions show parents; filter keeps tree order
+
+**`@tracker/core` 0.13.0**: `SuggestionItem.alsoEarns` (the point-earning
+parents a suggested log also counts for); `flattenHabits` now returns
+depth-first tree order, with `groupByDepth` for search's layout.
+
+**`@tracker/mobile` 0.13.1**: suggested subhabit logs name the parents they
+also log ("Also logs Exercise (+2)"); the points filter lists habits in
+depth-first tree order instead of interleaving them by depth.
+
 ## 2026-10-22 — Points filter flattens like search
 
 **`@tracker/core` 0.12.0**: `flattenHabits` (search's flat, depth-grouped

@@ -21,6 +21,7 @@ import {
   sprintLabel,
   suggestionDayLabel,
   suggestionLabel,
+  suggestionRollupLabel,
 } from "@/lib/points-format";
 import { theme } from "@/lib/theme";
 
@@ -151,7 +152,7 @@ export default function SprintDetail() {
                 {plan ? <Text style={styles.dayTotal}>{plan.total} pts</Text> : null}
               </View>
               {plan?.items.map((item) => (
-                <SuggestionRow key={item.habitId} item={item} name={habitName(item.habitId)} />
+                <SuggestionRow key={item.habitId} item={item} nameOf={habitName} />
               ))}
             </View>
           ))}
@@ -171,13 +172,23 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 /** "Skip" (clean-day) suggestions are styled apart from ordinary logs. */
-function SuggestionRow({ item, name }: { item: SuggestionItem; name: string }) {
+function SuggestionRow({
+  item,
+  nameOf,
+}: {
+  item: SuggestionItem;
+  nameOf: (habitId: string) => string;
+}) {
   const skip = item.kind === "clean_day";
+  const rollup = suggestionRollupLabel(item, nameOf);
   return (
     <View style={[styles.suggestion, skip && styles.suggestionSkip]}>
-      <Text style={[styles.suggestionText, skip && styles.suggestionSkipText]}>
-        {suggestionLabel(item, name)}
-      </Text>
+      <View style={styles.suggestionMain}>
+        <Text style={[styles.suggestionText, skip && styles.suggestionSkipText]}>
+          {suggestionLabel(item, nameOf(item.habitId))}
+        </Text>
+        {rollup ? <Text style={styles.suggestionRollup}>{rollup}</Text> : null}
+      </View>
       <Text style={[styles.suggestionPoints, skip && styles.suggestionSkipText]}>
         +{item.points}
       </Text>
@@ -239,7 +250,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   suggestionSkip: { backgroundColor: theme.colors.points.skipBackground },
+  suggestionMain: { flexShrink: 1, gap: 2 },
   suggestionText: { color: theme.colors.points.text, fontWeight: "600" },
+  suggestionRollup: { color: theme.colors.points.text, fontSize: 12 },
   suggestionSkipText: { color: theme.colors.points.skipText },
   suggestionPoints: { color: theme.colors.points.text },
 });

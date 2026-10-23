@@ -6,6 +6,7 @@ import {
   sprintLabel,
   suggestionDayLabel,
   suggestionLabel,
+  suggestionRollupLabel,
 } from "./points-format";
 
 const ctx = { now: "2026-03-05T12:00:00Z", timeZone: "UTC" };
@@ -36,12 +37,30 @@ describe("sprintLabel", () => {
 
 describe("suggestionLabel / suggestionDayLabel", () => {
   it("labels logs, repeats, and skips", () => {
-    const base = { habitId: "h", points: 1 };
+    const base = { habitId: "h", points: 1, alsoEarns: [] };
     expect(suggestionLabel({ ...base, kind: "per_log", count: 1 }, "Run")).toBe("Run");
     expect(suggestionLabel({ ...base, kind: "per_log", count: 2 }, "Run")).toBe("Run ×2");
     expect(suggestionLabel({ ...base, kind: "clean_day", count: 1 }, "Smoking")).toBe(
       "Skip Smoking",
     );
+  });
+
+  it("names the parents a log also counts for", () => {
+    const names: Record<string, string> = { health: "Health", exercise: "Exercise" };
+    const item = {
+      habitId: "run",
+      kind: "per_log" as const,
+      count: 2,
+      points: 10,
+      alsoEarns: [
+        { habitId: "health", points: 2 },
+        { habitId: "exercise", points: 4 },
+      ],
+    };
+    expect(suggestionRollupLabel(item, (id) => names[id]!)).toBe(
+      "Also logs Health (+2), Exercise (+4)",
+    );
+    expect(suggestionRollupLabel({ ...item, alsoEarns: [] }, (id) => id)).toBeNull();
   });
 
   it("calls today 'Today'", () => {

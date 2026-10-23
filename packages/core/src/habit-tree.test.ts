@@ -7,6 +7,7 @@ import {
   getAncestors,
   flattenHabits,
   getDescendants,
+  groupByDepth,
   searchHabits,
   wouldCreateCycle,
 } from "./habit-tree";
@@ -192,22 +193,37 @@ describe("buildDashboardRows", () => {
   });
 });
 
-describe("flattenHabits", () => {
-  it("groups included habits by depth, skipping archived subtrees", () => {
-    const habits = [
-      habit("root"),
-      habit("child", { parentId: "root" }),
-      habit("grandchild", { parentId: "child" }),
-      habit("other"),
-      habit("gone", { archivedAt: "2026-01-02T00:00:00Z" }),
-      habit("under-gone", { parentId: "gone" }),
-    ];
-    const groups = flattenHabits(habits, (h) => h.id !== "child");
+describe("flattenHabits / groupByDepth", () => {
+  const habits = [
+    habit("root"),
+    habit("child", { parentId: "root" }),
+    habit("grandchild", { parentId: "child" }),
+    habit("child2", { parentId: "root" }),
+    habit("other"),
+    habit("other-child", { parentId: "other" }),
+    habit("gone", { archivedAt: "2026-01-02T00:00:00Z" }),
+    habit("under-gone", { parentId: "gone" }),
+  ];
+
+  it("flattens in depth-first tree order, skipping archived subtrees", () => {
+    const matches = flattenHabits(habits, (h) => h.id !== "child");
+    expect(matches.map((m) => m.habit.id)).toEqual([
+      "root",
+      "grandchild",
+      "child2",
+      "other",
+      "other-child",
+    ]);
+    expect(matches[1]!.ancestors.map((a) => a.id)).toEqual(["root", "child"]);
+  });
+
+  it("groupByDepth regroups by depth, keeping tree order within each", () => {
+    const groups = groupByDepth(flattenHabits(habits, () => true));
     expect(groups.map((g) => g.map((m) => m.habit.id))).toEqual([
       ["root", "other"],
+      ["child", "child2", "other-child"],
       ["grandchild"],
     ]);
-    expect(groups[1]![0]!.ancestors.map((a) => a.id)).toEqual(["root", "child"]);
   });
 });
 

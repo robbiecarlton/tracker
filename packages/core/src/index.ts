@@ -1,4 +1,4 @@
-export const CORE_VERSION = "0.12.0";
+export const CORE_VERSION = "0.13.0";
 
 export { z } from "zod";
 export type { ZodError, ZodType } from "zod";

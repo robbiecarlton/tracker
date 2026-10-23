@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-10-22
+
+### Fixed
+
+- Sprint suggestions now say when a suggested subhabit's log also counts
+  for a point-earning parent ("Also logs Exercise (+2)"). The points were
+  already included in the total, but the parent wasn't shown, so it looked
+  ignored.
+- The points filter's flat list now follows depth-first tree order (each
+  habit right after its parent), instead of grouping by depth, which
+  interleaved unrelated habits. Search keeps its grouped-by-depth order.
+
 ## [0.13.0] - 2026-10-22
 
 ### Changed

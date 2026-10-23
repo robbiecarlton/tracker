@@ -38,6 +38,19 @@ export function suggestionLabel(item: SuggestionItem, habitName: string): string
   return item.count > 1 ? `${habitName} ×${item.count}` : habitName;
 }
 
+/**
+ * The parents a suggested log also counts for — e.g. "Also logs Exercise
+ * (+2)" — since logging a subhabit always logs its ancestors too. `null`
+ * when there are none (including every skip).
+ */
+export function suggestionRollupLabel(
+  item: SuggestionItem,
+  nameOf: (habitId: string) => string,
+): string | null {
+  if (item.alsoEarns.length === 0) return null;
+  return `Also logs ${item.alsoEarns.map((a) => `${nameOf(a.habitId)} (+${a.points})`).join(", ")}`;
+}
+
 /** A suggestion list's day heading, e.g. "Today" or "Thu, Mar 5". */
 export function suggestionDayLabel(isoDate: string, ctx: TimeContext): string {
   const day = DateTime.fromISO(isoDate, { zone: ctx.timeZone });

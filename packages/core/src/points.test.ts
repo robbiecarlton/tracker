@@ -294,7 +294,26 @@ describe("suggestDailyPlan", () => {
       habit("run", { parentId: "exercise", pointsKind: "per_log", pointsValue: 1 }),
     ];
     const plan = suggestDailyPlan(habits, 3, seeded(1));
-    expect(plan.items).toEqual([{ habitId: "run", kind: "per_log", count: 1, points: 3 }]);
+    expect(plan.items).toEqual([
+      {
+        habitId: "run",
+        kind: "per_log",
+        count: 1,
+        points: 3,
+        alsoEarns: [{ habitId: "exercise", points: 2 }],
+      },
+    ]);
+  });
+
+  it("totals each ancestor's share across repeats, root first", () => {
+    const habits = [
+      habit("health", { pointsKind: "per_log", pointsValue: 1, allowDirectLogging: false }),
+      habit("exercise", { parentId: "health" }), // no points: not listed
+      habit("run", { parentId: "exercise", pointsKind: "per_log", pointsValue: 2 }),
+    ];
+    const [item] = suggestDailyPlan(habits, 7, seeded(1)).items;
+    expect(item).toMatchObject({ habitId: "run", count: 3, points: 9 });
+    expect(item!.alsoEarns).toEqual([{ habitId: "health", points: 3 }]);
   });
 
   it("never pairs a skip with a log of the same habit's subtree", () => {
@@ -315,7 +334,7 @@ describe("suggestDailyPlan", () => {
       habit("old", { pointsKind: "per_log", pointsValue: 1, archivedAt: "x" }),
     ];
     expect(suggestDailyPlan(habits, 10, seeded(1))).toEqual({
-      items: [{ habitId: "smoking", kind: "clean_day", count: 1, points: 2 }],
+      items: [{ habitId: "smoking", kind: "clean_day", count: 1, points: 2, alsoEarns: [] }],
       total: 2,
     });
   });

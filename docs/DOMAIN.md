@@ -226,18 +226,21 @@ total? (N sprints affected)").
   day, a random set of point-earning habits whose points reach the daily
   average rounded **up** (overshooting is fine). Drawn uniformly; a log
   is worth its own plus its `per_log` ancestors' values and may repeat
-  (shown "Run ×2"); habits with direct logging off are never suggested to
-  log. A clean-day habit appears at most once, styled as a "Skip", and
+  (shown "Run ×2"), and since logging a subhabit always logs its
+  ancestors too, each suggested log names the point-earning parents it
+  also counts for ("Also logs Exercise (+2)"); habits with direct logging
+  off are never suggested to log. A clean-day habit appears at most once, styled as a "Skip", and
   never alongside a log of itself or a descendant (that would break it).
   Not persisted — regenerated per visit and by **Reroll**.
 - The home page shows a card per upcoming/active sprint (total vs
   target, per-day needed, dates, Edit); ended sprints move to **Past
   sprints** (final total, hit/missed). The home page can also be
   filtered to habits that earn points, or those that don't (by each
-  habit's _own_ points only). Filtering flattens the dashboard exactly
-  like search does — a flat list grouped by nesting depth, each with its
-  ancestor breadcrumb — and combines with a search query when both are
-  set.
+  habit's _own_ points only). Filtering flattens the dashboard into the
+  same flat cards-with-breadcrumbs list search uses, but in depth-first
+  tree order (each habit right after its parent, as the nested dashboard
+  reads) rather than search's grouped-by-depth order. Combined with a
+  search query, search's grouping applies.
 
 ## Offline (Phase 5)
 

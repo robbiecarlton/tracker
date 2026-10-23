@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-22
+
+### Added
+
+- `SuggestionItem.alsoEarns` — the `per_log` ancestors a suggested log
+  also counts for (root first), each with its share of `points`.
+- `groupByDepth(matches)` in `habit-tree.ts` — regroups a flat match list
+  by depth; `searchHabits` uses it (same results as before).
+
+### Changed
+
+- `flattenHabits` now returns one list in depth-first tree order (each
+  habit right after its parent) instead of depth groups.
+
 ## [0.12.0] - 2026-10-22
 
 ### Added

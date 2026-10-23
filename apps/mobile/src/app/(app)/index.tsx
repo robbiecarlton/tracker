@@ -3,6 +3,7 @@ import {
   flattenHabits,
   fuzzySubsequenceMatch,
   getDescendants,
+  groupByDepth,
   matchesPointsFilter,
   sprintStatus,
   type PointsFilter,
@@ -336,11 +337,13 @@ export default function Dashboard() {
   }
 
   const topLevelHabits = childrenOf(null, allHabits).filter((h) => !h.archivedAt);
-  // Search and the points filter both render the same flat list, and
-  // combine when both are set.
+  // Search and the points filter both render a flat list, and combine
+  // when both are set. Filter alone keeps depth-first tree order (each
+  // habit right after its parent); any search regroups by depth, as
+  // search always has.
   const trimmedQuery = query.trim();
   const flatView = trimmedQuery !== "" || pointsFilter !== "all";
-  const flatGroups = flatView
+  const flatMatches = flatView
     ? flattenHabits(
         allHabits,
         (habit, ancestors) =>
@@ -348,6 +351,11 @@ export default function Dashboard() {
           fuzzySubsequenceMatch(trimmedQuery, [...ancestors, habit].map((h) => h.name).join(" ")),
       )
     : [];
+  const flatGroups = trimmedQuery
+    ? groupByDepth(flatMatches)
+    : flatMatches.length > 0
+      ? [flatMatches]
+      : [];
   const flatEmptyMessage = trimmedQuery
     ? `No habits match \u201c${trimmedQuery}\u201d.`
     : pointsFilter === "points"

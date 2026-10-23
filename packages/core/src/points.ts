@@ -217,8 +217,14 @@ export interface SuggestionItem {
   habitId: string;
   kind: PointsKind;
   count: number;
-  /** Points this line is worth in total (`count` × each one's worth). */
+  /** Points this line is worth in total (`count` × each one's worth), including `alsoEarns`. */
   points: number;
+  /**
+   * `per_log` only: the `per_log` ancestors a log of this habit also
+   * counts for (logging rolls up — you can't log the child without the
+   * parent), root first, each with its share of `points`. Empty for skips.
+   */
+  alsoEarns: { habitId: string; points: number }[];
 }
 
 /**
@@ -239,19 +245,22 @@ export function suggestDailyPlan<T extends PointsHabit>(
   const active = habits.filter((h) => !h.archivedAt);
   const logOptions = active
     .filter((h) => h.pointsKind === "per_log" && h.pointsValue != null && h.allowDirectLogging)
-    .map((h) => ({
-      habit: h,
-      worth:
-        h.pointsValue! +
-        getAncestors(h.id, habits)
-          .filter((a) => !a.archivedAt && a.pointsKind === "per_log" && a.pointsValue != null)
-          .reduce((sum, a) => sum + a.pointsValue!, 0),
-      // Clean-day habits a log of this one would break: itself and ancestors.
-      breaks: new Set([h.id, ...getAncestors(h.id, habits).map((a) => a.id)]),
-    }));
+    .map((h) => {
+      const ancestors = getAncestors(h.id, habits);
+      const rollup = ancestors
+        .filter((a) => !a.archivedAt && a.pointsKind === "per_log" && a.pointsValue != null)
+        .map((a) => ({ habitId: a.id, points: a.pointsValue! }));
+      return {
+        habit: h,
+        rollup,
+        worth: h.pointsValue! + rollup.reduce((sum, r) => sum + r.points, 0),
+        // Clean-day habits a log of this one would break: itself and ancestors.
+        breaks: new Set([h.id, ...ancestors.map((a) => a.id)]),
+      };
+    });
   const skipOptions = active
     .filter((h) => h.pointsKind === "clean_day" && h.pointsValue != null)
-    .map((h) => ({ habit: h, worth: h.pointsValue! }));
+    .map((h) => ({ habit: h, worth: h.pointsValue!, rollup: [] }));
 
   const items = new Map<string, SuggestionItem>();
   const skipped = new Set<string>();
@@ -281,12 +290,14 @@ export function suggestDailyPlan<T extends PointsHabit>(
     if (existing) {
       existing.count += 1;
       existing.points += pick.worth;
+      existing.alsoEarns.forEach((share, i) => (share.points += pick.rollup[i]!.points));
     } else {
       items.set(pick.habit.id, {
         habitId: pick.habit.id,
         kind: pick.kind,
         count: 1,
         points: pick.worth,
+        alsoEarns: pick.rollup.map((r) => ({ ...r })),
       });
     }
     total += pick.worth;
